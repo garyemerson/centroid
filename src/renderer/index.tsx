@@ -7,7 +7,7 @@ import objectAssign = require("object-assign")
 import native = require('../../native');
 
 native.init()
-console.log("From Rust:", native.hello())
+console.log("From index.tsx/Rust:", native.hello())
 
 // Get access to dialog boxes in our main UI process.
 const remote = Electron.remote
@@ -132,15 +132,28 @@ class Player extends React.Component<IPlayerProps, INoState> {
   }
 }
 
+class PreviewBar extends React.Component<any, any> {
+  divStyle = {
+    width: "200px",
+    height: "100px",
+    background: "#eee",
+  };
+
+  render () {
+    return <div style={this.divStyle}>foobar</div>
+  }
+}
+
 const store = createStore(player)
 
 function render() {
   ReactDOM.render(
-    <Player
-      url={(store.getState() || newPlayerState()).url}
-      onSetUrl={(url) => store.dispatch(setUrl(url))}
-      onSetSize={(w, h) => Electron.ipcRenderer.send("video-size", w, h)}
-      />,
+    // <Player
+    //   url={(store.getState() || newPlayerState()).url}
+    //   onSetUrl={(url) => store.dispatch(setUrl(url))}
+    //   onSetSize={(w, h) => Electron.ipcRenderer.send("video-size", w, h)}
+    //   />,
+    <PreviewBar />,
     document.getElementById('root')
   )
 }

@@ -11,4 +11,5 @@ crate-type = ["dylib"]
 [dependencies]
 env_logger = "0.3.5"
 log = "0.3.6"
-neon = "0.1"
+neon = "0.1.17"
+rand = "0.3.15"

@@ -4,13 +4,13 @@ import path = require('path');
 import native = require('../../native');
 
 native.init()
-console.log("From Rust:", native.hello())
+console.log("From main.ts/Rust:", native.hello())
 
 // Global window object so it doesn't go out of scope and get GCed.
 let win: Electron.BrowserWindow | null
 
 function createWindow() {
-  win = new BrowserWindow({ width: 400, height: 300 })
+  win = new BrowserWindow({ width: 600, height: 450 })
 
   globalShortcut.register('F12', () => {
     if (win) {

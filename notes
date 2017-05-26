@@ -1,0 +1,14 @@
+TODO
+----
+* Preview box creation
+* City fuzzy search drop down selection
+
+Idea
+----
+1) Select 3 popular cities around the world
+    * Live query from google maps api
+    * Each selection add small maps preview box
+2) Press "compute centroid" button
+    * Pass coordinates to rust code for computation
+3) Draw big centroid illustration below all preview boxes
+    * Receive results from rust
