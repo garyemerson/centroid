@@ -10,7 +10,7 @@ console.log("From main.ts/Rust:", native.hello())
 let win: Electron.BrowserWindow | null
 
 function createWindow() {
-  win = new BrowserWindow({ width: 600, height: 450 })
+  win = new BrowserWindow({ width: 900, height: 675 })
 
   globalShortcut.register('F12', () => {
     if (win) {

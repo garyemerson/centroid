@@ -1,0 +1,21 @@
+{
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	],
+    "build_systems":
+    [
+        {
+            "name": "build",
+            "shell_cmd": "cd /Users/Garrett/workspaces/centroid && . env.sh && npm run install",
+            "syntax": "build_results.sublime-syntax"
+        },
+        {
+            "name": "run",
+            "shell_cmd": "cd /Users/Garrett/workspaces/centroid && . env.sh && npm run install && npm start",
+            "syntax": "build_results.sublime-syntax"
+        }
+    ]
+}

@@ -133,14 +133,38 @@ class Player extends React.Component<IPlayerProps, INoState> {
 }
 
 class PreviewBar extends React.Component<any, any> {
-  divStyle = {
-    width: "200px",
-    height: "100px",
+  style = {
+    // width: "200px",
+    // height: "100px",
     background: "#eee",
+    // display: "inline-block",
   };
 
   render () {
-    return <div style={this.divStyle}>foobar</div>
+    return <div style={this.style}>
+      <Preview/>
+      <Preview/>
+      <Preview/>
+    </div>
+  }
+}
+
+class Preview extends React.Component<any, any> {
+  style = {
+    width: "100px",
+    height: "50px",
+    background: "#aacbff",
+    margin: "10px",
+    display: "inline-block",
+    lineHeight: "50px",
+    textAlign: "center",
+    verticalAlign: "middle",
+    // fontFamily: "monospace",
+    "fontFamily": "monospace",
+  }
+
+  render () {
+    return <div style={this.style}>foobar</div>
   }
 }
 
