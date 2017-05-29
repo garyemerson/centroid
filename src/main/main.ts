@@ -30,25 +30,6 @@ function createWindow() {
   })
 }
 
-// type Size = [number, number]
-
-// function constrainSize(desired: Size, max: Size): Size {
-//   const [desiredWidth, desiredHeight] = desired
-//   const [maxWidth, maxHeight] = max
-//   const aspectRatio = desiredWidth / desiredHeight
-//   if (aspectRatio < maxWidth / maxHeight) {
-//     // Too narrow and tall.
-//     const height = Math.min(desiredHeight, maxHeight)
-//     const width = height * aspectRatio
-//     return [width, height]
-//   } else {
-//     // Too wide and short.
-//     const width = Math.min(desiredWidth, maxWidth)
-//     const height = width / aspectRatio
-//     return [width, height]
-//   }
-// }
-
 // ipcMain.on('video-size', (event, width: number, height: number) => {
 //   console.log('video-size', width, height)
 //   if (win) {
