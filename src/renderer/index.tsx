@@ -1,10 +1,10 @@
 import React = require('react')
 import ReactDOM = require('react-dom')
-import { createStore } from 'redux'
 import Electron = require('electron')
 import { format as urlFormat } from 'url'
 import objectAssign = require("object-assign")
 import native = require('../../native');
+import fs = require('fs')
 
 native.init()
 console.log("From index.tsx/Rust:", native.hello())
@@ -134,9 +134,9 @@ class Player extends React.Component<IPlayerProps, INoState> {
 
 class PreviewBar extends React.Component<any, any> {
   style = {
-    // width: "200px",
+    // width: "100%",
     // height: "100px",
-    background: "#eee",
+    background: "#efefef",
     // display: "inline-block",
   };
 
@@ -151,36 +151,43 @@ class PreviewBar extends React.Component<any, any> {
 
 class Preview extends React.Component<any, any> {
   style = {
-    width: "100px",
-    height: "50px",
+    width: "300px",
+    // height: "150px",
     background: "#aacbff",
     margin: "10px",
     display: "inline-block",
     lineHeight: "50px",
     textAlign: "center",
     verticalAlign: "middle",
-    // fontFamily: "monospace",
-    "fontFamily": "monospace",
+    fontFamily: "monospace",
+    border: "1px solid black",
   }
 
   render () {
-    return <div style={this.style}>foobar</div>
+    // "47.6028817"
+    // "-122.2249513"
+    var lon_min = -19
+    var lon_max = 140.522780
+    var lat = Math.random() * 90
+    var lon = Math.random() * (lon_max - lon_min) + lon_min
+    var log_msg: string = "(lat, lon): (" + lat + ", " + lon + ")"
+    console.log("foobar")
+    console.log(log_msg)
+    var key = fs.readFileSync('/Users/Garrett/workspaces/centroid/api_key')
+    console.log("api key is " + key)
+    var img_url = "https://maps.googleapis.com/maps/api/staticmap?center="
+      + lat + "," + lon
+      + "&zoom=5&size=640x400&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R&key=" + key
+
+    return <img style={this.style} src={img_url}></img>
   }
 }
 
-const store = createStore(player)
-
 function render() {
   ReactDOM.render(
-    // <Player
-    //   url={(store.getState() || newPlayerState()).url}
-    //   onSetUrl={(url) => store.dispatch(setUrl(url))}
-    //   onSetSize={(w, h) => Electron.ipcRenderer.send("video-size", w, h)}
-    //   />,
     <PreviewBar />,
     document.getElementById('root')
   )
 }
 
 render()
-store.subscribe(render)
