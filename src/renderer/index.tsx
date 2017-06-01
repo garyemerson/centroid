@@ -4,6 +4,7 @@ import Electron = require('electron')
 import { format as urlFormat } from 'url'
 import objectAssign = require("object-assign")
 import native = require('../../native');
+import fuse = require('fuse.js')
 import fs = require('fs')
 
 native.init()
@@ -22,6 +23,9 @@ class PreviewBar extends React.Component<any, any> {
 
   render () {
     return <div style={this.style}>
+      <div>
+        <CityInput/>
+      </div>
       <Preview/>
       <Preview/>
       <Preview/>
@@ -29,37 +33,99 @@ class PreviewBar extends React.Component<any, any> {
   }
 }
 
-class Preview extends React.Component<any, any> {
+class CityInput extends React.Component<any, any> {
+  constructor(props: any) {
+    super(props)
+    this.handleBlur = this.handleBlur.bind(this)
+    this.handleFocus = this.handleFocus.bind(this)
+  }
+
   style = {
+    width: "100px",
+    height: "100px",
+  }
+  inputStyle = {
+    width: "100%",
+  }
+  ulStyle = {
+    backgroundColor: "#fff",
+    listStyleType: "none",
+    margin: 0,
+    padding: 0,
+    display: "none",
+  }
+  liStyle = {
+    borderLeft: "1px solid black",
+    borderRight: "1px solid black",
+    borderBottom: "1px solid black",
+  }
+
+  handleFocus() {
+    console.log("focus")
+    console.log("this is " + this)
+    this.ulStyle.display = "block"
+    render()
+  }
+
+  handleBlur() {
+    console.log("blur")
+    console.log("this is " + this)
+    this.ulStyle.display = "none"
+    render()
+  }
+
+  render() {
+    return <div style={this.style}>
+       <input style={this.inputStyle} type="text" name="city" placeholder="city" onFocus={this.handleFocus} onBlur={this.handleBlur}></input>
+       <ul style={this.ulStyle}>
+         <li style={this.liStyle}>foo</li>
+         <li style={this.liStyle}>bar</li>
+         <li style={this.liStyle}>baz</li>
+       </ul>
+     </div>
+  }
+}
+
+class Preview extends React.Component<any, any> {
+  constructor() {
+    super()
+    var cities = fs.readFileSync("/Users/Garrett/workspaces/centroid/cities", "utf8").split("\n")
+    this.city = cities[Math.floor(Math.random() * cities.length)]
+    this.city = this.city.replace(", ", ",")
+    this.city = this.city.replace(" ", "+")
+    console.log("city is " + this.city)
+
+    var key = fs.readFileSync('/Users/Garrett/workspaces/centroid/api_key')
+    // console.log("api key is " + key)
+    this.img_url = "https://maps.googleapis.com/maps/api/staticmap?center="+ this.city + 
+      "&zoom=5&size=640x400&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + 
+      "&markers=color:red%7C" + this.city + 
+      "&key=" + key
+
+  }
+
+  city: string
+  img_url: string
+  imgStyle = {
     width: "300px",
     // height: "150px",
     background: "#aacbff",
-    margin: "10px",
+    border: "1px solid black",
+    // verticalAlign: "middle",
+  }
+  divStyle = {
     display: "inline-block",
+    margin: "10px",
     lineHeight: "50px",
     textAlign: "center",
-    verticalAlign: "middle",
     fontFamily: "monospace",
-    border: "1px solid black",
   }
 
   render () {
-    // "47.6028817"
-    // "-122.2249513"
-    var lon_min = -19
-    var lon_max = 140.522780
-    var lat = Math.random() * 90
-    var lon = Math.random() * (lon_max - lon_min) + lon_min
-    var log_msg: string = "(lat, lon): (" + lat + ", " + lon + ")"
-    console.log("foobar")
-    console.log(log_msg)
-    var key = fs.readFileSync('/Users/Garrett/workspaces/centroid/api_key')
-    console.log("api key is " + key)
-    var img_url = "https://maps.googleapis.com/maps/api/staticmap?center="
-      + lat + "," + lon
-      + "&zoom=5&size=640x400&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R&key=" + key
-
-    return <img style={this.style} src={img_url}></img>
+    return <div style={this.divStyle}>
+      <p>{this.city}</p>
+      <img style={this.imgStyle} src={this.img_url}></img>
+    </div>
   }
 }
 
