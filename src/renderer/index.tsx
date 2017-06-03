@@ -4,8 +4,8 @@ import Electron = require('electron')
 import { format as urlFormat } from 'url'
 import objectAssign = require("object-assign")
 import native = require('../../native');
-import fuse = require('fuse.js')
 import fs = require('fs')
+import Fuse = require('fuse.js')
 
 native.init()
 console.log("From index.tsx/Rust:", native.hello())
@@ -36,7 +36,6 @@ class PreviewBar extends React.Component<any, any> {
 class CityInput extends React.Component<any, any> {
   constructor(props: any) {
     super(props)
-    let cities = fs.readFileSync("/Users/Garrett/workspaces/centroid/cities", "utf8").split("\n")
     let options = {
       shouldSort: true,
       includeMatches: true,
@@ -45,18 +44,20 @@ class CityInput extends React.Component<any, any> {
       distance: 100,
       maxPatternLength: 32,
       minMatchCharLength: 1,
-      keys: [
-        "title",
-        "author.firstName"
-      ]
+      // keys: [
+      //   "title",
+      //   "author.firstName"
+      // ]
     };
     this.state = {
       inputText: "",
-      cities: cities,
-      // fz: new Fuse(cities, options),
+      fz: new Fuse(this.allCities, options),
+      matches: this.allCities,
+      matchIndices: [],
     }
   }
 
+  allCities = fs.readFileSync("/Users/Garrett/workspaces/centroid/cities", "utf8").split("\n")
   style = {
     width: "200px",
     height: "50px",
@@ -81,6 +82,9 @@ class CityInput extends React.Component<any, any> {
     // borderRight: "1px solid black",
     borderBottom: "1px solid black",
   }
+  matchStyle = {
+    color: "orange"
+  }
 
   handleFocus() {
     console.log("focus")
@@ -101,12 +105,64 @@ class CityInput extends React.Component<any, any> {
     this.setState({
       inputText: event.target.value
     });
+
+    if (event.target.value !== "") {
+      let results = this.state.fz.search(event.target.value)
+      console.log("results are:")
+      console.log(results)
+      let newMatches = []
+      let newMatchIndices: any[][] = []
+      for (let i = 0; i < results.length; i++) {
+        newMatches.push(this.allCities[results[i].item])
+        newMatchIndices.push(results[i].matches[0])
+      }
+      this.setState({
+        matches: newMatches,
+        matchIndices: newMatchIndices,
+      })
+    } else {
+      this.setState({
+        matches: this.allCities,
+        matchIndices: [],
+      })
+    }
+  }
+
+  getHighlightedElem(i: number): JSX.Element {
+    // console.log("matchIndices[i] is:")
+    // console.log(this.state.matchIndices[i])
+    let indices = this.state.matchIndices[i].indices
+    // console.log("indices for elem" + i + " are:")
+    // console.log(indices)
+    let elem: JSX.Element[] = []
+    let curr = 0
+    for (let j = 0; j < indices.length; j++) {
+      console.log("curr is %s; next hi index is at %s", curr, indices[j][0])
+      if (curr !== indices[j][0]) { // if curr is not equal to the start of next highlight
+        elem.push(<span>{this.state.matches[j].substring(curr, indices[j][0])}</span>)
+        curr = indices[j][0]
+      }
+      elem.push(<span style={this.matchStyle}>{this.state.matches[j].substring(indices[j][0], indices[j][1] + 1)}</span>)
+      curr = indices[j][1] + 1
+    }
+    if (curr !== this.state.matches[i].length) {
+      elem.push(<span>{this.state.matches[i].substring(curr, this.state.matches[i].length)}</span>)
+    }
+
+    return <li style={this.liStyle}>{elem}</li>
   }
 
   render() {
     let ulElems: JSX.Element[] = [];
-    for (let i = 0; i < this.state.cities.length; i++) {
-      ulElems.push(<li style={this.liStyle}>{this.state.cities[i]}{this.state.inputText}</li>)
+    for (let i = 0; i < this.state.matches.length; i++) {
+      let elem: JSX.Element
+      if (this.state.matchIndices.length !== 0) {
+        console.log("getting highlighted elem")
+        elem = this.getHighlightedElem(i)
+      } else {
+        elem = <li style={this.liStyle}>{this.state.matches[i]}</li>
+      }
+      ulElems.push(elem)
     }
 
     return <div style={this.style}>
