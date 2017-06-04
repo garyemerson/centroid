@@ -6,6 +6,7 @@ import objectAssign = require("object-assign")
 import native = require('../../native');
 import fs = require('fs')
 import Fuse = require('fuse.js')
+import https = require('https')
 
 native.init()
 console.log("From index.tsx/Rust:", native.hello())
@@ -232,22 +233,21 @@ class CityInput extends React.Component<any, any> {
 class Preview extends React.Component<any, any> {
   constructor(props: any) {
     super(props)
-    // let cities = fs.readFileSync("/Users/Garrett/workspaces/centroid/cities", "utf8").split("\n")
-    // this.city = cities[Math.floor(Math.random() * cities.length)]
-    // this.city = this.city.replace(/, /g , ",")
-    // this.city = this.city.replace(/ /g, "+")
     console.log("city is " + this.props.city)
+    let cityEscaped = this.props.city.replace(/, /g , ",").replace(/ /g, "+")
+    console.log("city escaped is " + cityEscaped)
 
-    let key = fs.readFileSync('/Users/Garrett/workspaces/centroid/api_key')
-    this.img_url = "https://maps.googleapis.com/maps/api/staticmap?center="+ this.props.city + 
-      "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + 
-      "&markers=color:red%7C" + this.props.city + 
-      "&key=" + key
-
+    let key = fs.readFileSync('/Users/Garrett/workspaces/centroid/api_key').toString()
+    this.state = {
+      imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ this.props.city + 
+        "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + 
+        "&markers=color:red%7C" + cityEscaped + 
+        "&key=" + key,
+      latLon: "",
+    }
+    this.getLatLon(cityEscaped, key)
   }
 
-  // city: string
-  img_url: string
   imgStyle = {
     width: "100%",
     height: "180px",
@@ -259,15 +259,68 @@ class Preview extends React.Component<any, any> {
     width: "300px",
     display: "inline-block",
     margin: "10px",
-    lineHeight: "50px",
+    // lineHeight: "50px",
     textAlign: "center",
     fontFamily: "monospace",
+  }
+
+  getLatLon(city: string, apiKey: string): [number, number] {
+    let requestPath = "/maps/api/geocode/json?address=" + city + "&key=" + apiKey
+
+    // const postData = requestPath.stringify({
+    //   'msg': 'Hello World!'
+    // });
+
+    const options = {
+      hostname: 'maps.googleapis.com',
+      port: 443,
+      path: requestPath,
+      method: 'GET',
+      // headers: {
+      //   'Content-Type': 'application/x-www-form-urlencoded',
+      //   'Content-Length': Buffer.byteLength(postData)
+      // }
+    };
+
+    console.log("making request with path " + requestPath)
+    const req = https.request(options, (res) => {
+      let temp = ""
+      // console.log(`STATUS: ${res.statusCode}`);
+      // console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
+      res.setEncoding('utf8');
+      res.on('data', (chunk) => {
+        // console.log(`BODY: ${chunk}`);
+        temp += chunk
+      });
+      res.on('end', () => {
+        // console.log('No more data in response.');
+        // console.log("full response:")
+        let obj = JSON.parse(temp)
+        // console.log(obj)
+        // console.log(obj.results[0].geometry.location)
+        let loc = obj.results[0].geometry.location
+        this.setState({
+          latLon: "(" + loc.lat + ", " + loc.lng + ")"
+        })
+      });
+    });
+
+    req.on('error', (e) => {
+      console.error(`problem with request: ${e.message}`);
+    });
+
+    // write data to request body
+    // req.write(postData);
+    req.end();
+
+    return [0, 0]
   }
 
   render () {
     return <div style={this.divStyle}>
       <p>{this.props.city}</p>
-      <img style={this.imgStyle} src={this.img_url}></img>
+      <p>{this.state.latLon}</p>
+      <img style={this.imgStyle} src={this.state.imgUrl}></img>
     </div>
   }
 }

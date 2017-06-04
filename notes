@@ -1,7 +1,8 @@
 TODO
 ----
-* fuzzy search/selection drop down for cities
-* Preview box creation
+* remove city button
+* search box focus shortcut (ctrl/cmd+L)
+* improve fuse perf
 
 Idea
 ----
