@@ -14,6 +14,13 @@ console.log("From index.tsx/Rust:", native.hello())
 const remote = Electron.remote
 
 class PreviewBar extends React.Component<any, any> {
+  constructor() {
+    super()
+    this.state = {
+      selectedCities: [],
+    }
+  }
+
   style = {
     // width: "100%",
     // height: "100px",
@@ -21,14 +28,28 @@ class PreviewBar extends React.Component<any, any> {
     // display: "inline-block",
   };
 
+  addSelectedCity(city: string) {
+    let newSelectedCities = this.state.selectedCities.slice()
+    newSelectedCities.push(city)
+    this.setState({
+      selectedCities: newSelectedCities,
+    })
+    console.log("adding " + city)
+    console.log("selectedCities is:")
+    console.log(newSelectedCities)
+  }
+
   render () {
+    let previews: JSX.Element[] = []
+    for (let i = 0; i < this.state.selectedCities.length; i++) {
+      previews.push(<Preview city={this.state.selectedCities[i]}/>)
+    }
+
     return <div style={this.style}>
       <div>
-        <CityInput/>
+        <CityInput addSelectedCity={this.addSelectedCity.bind(this)}/>
       </div>
-      <Preview/>
-      <Preview/>
-      <Preview/>
+      {previews}
     </div>
   }
 }
@@ -49,6 +70,7 @@ class CityInput extends React.Component<any, any> {
       //   "author.firstName"
       // ]
     };
+    this.focusTextInput = this.focusTextInput.bind(this);
     this.state = {
       inputText: "",
       fz: new Fuse(this.allCities, options),
@@ -57,6 +79,7 @@ class CityInput extends React.Component<any, any> {
     }
   }
 
+  textInput: any
   allCities = fs.readFileSync("/Users/Garrett/workspaces/centroid/cities", "utf8").split("\n")
   style = {
     width: "200px",
@@ -79,27 +102,29 @@ class CityInput extends React.Component<any, any> {
     zIndex: 1,
   }
   liStyle = {
-    borderLeft: "1px solid black",
-    // borderRight: "1px solid black",
-    borderBottom: "1px solid black",
+    borderLeft: "1px solid #444",
+    // borderRight: "1px solid #444",
+    borderBottom: "1px solid #444",
+    padding: "1px",
+    cursor: "pointer",
   }
   matchStyle = {
-    color: "#000",
-    fontWeight: "bold",
+    color: "#f2c12e",
+    // fontWeight: "bold",
   }
 
   handleFocus() {
     console.log("focus")
     this.ulStyle = { ...this.ulStyle }
     this.ulStyle.display = "block"
-    render()
+    render() // TODO: move styles to this.state so we don't have to do this
   }
 
   handleBlur() {
     console.log("blur")
     this.ulStyle = { ...this.ulStyle }
     this.ulStyle.display = "none"
-    render()
+    render() // TODO: move styles to this.state so we don't have to do this
   }
 
   handleChange(event: any) {
@@ -110,6 +135,12 @@ class CityInput extends React.Component<any, any> {
 
     if (event.target.value !== "") {
       let results = this.state.fz.search(event.target.value)
+      // console.log("search results:")
+      // console.log(results)
+      // let resultIndices: number[] = results.map(function(x: any): number { return x.item })
+      // resultIndices.sort()
+      // console.log("result indices:")
+      // console.log(resultIndices)
       let newMatches = []
       let newMatchIndices: any[][] = []
       for (let i = 0; i < results.length; i++) {
@@ -128,7 +159,25 @@ class CityInput extends React.Component<any, any> {
     }
   }
 
-  getHighlightedElem(i: number): JSX.Element {
+  handleMouseDown(e: any, city: any) {
+    e.preventDefault();
+    console.log("processing click with this as " + city)
+    this.props.addSelectedCity(city)
+  }
+
+  getMouseDownHandler(city: string) {
+    return function(e: any) {
+      e.preventDefault();
+      console.log("processing click with this as " + city)
+      this.props.addSelectedCity(city)
+    }.bind(this)
+  }
+
+  focusTextInput() {
+    this.textInput.focus();
+  }
+
+  getHighlightedSpans(i: number): JSX.Element[] {
     let indices = this.state.matchIndices[i].indices
     let spans: JSX.Element[] = []
     let curr = 0
@@ -147,25 +196,32 @@ class CityInput extends React.Component<any, any> {
       spans.push(<span>{substr}</span>)
     }
 
-    return <li style={this.liStyle}>{spans}</li>
+    return spans
   }
 
   render() {
     let ulElems: JSX.Element[] = [];
     for (let i = 0; i < this.state.matches.length; i++) {
-      let elem: JSX.Element
+      let liContent: any
       if (this.state.matchIndices.length !== 0) {
-        elem = this.getHighlightedElem(i)
+        liContent = this.getHighlightedSpans(i)
       } else {
-        elem = <li style={this.liStyle}>{this.state.matches[i]}</li>
+        liContent = this.state.matches[i]
       }
-      ulElems.push(elem)
+
+      let hoverStyle = <style>{
+        "#dropdownEntry:hover {background-color: #f2f4f7}"
+      }</style>
+      let liElem = <li id="dropdownEntry" onMouseDown={this.getMouseDownHandler(this.state.matches[i])} style={this.liStyle}>{hoverStyle}{liContent}</li>
+
+      ulElems.push(liElem)
     }
 
     return <div style={this.style}>
       <input value={this.state.inputText} style={this.inputStyle} type="text" name="city"
         placeholder="city"onFocus={this.handleFocus.bind(this)}
-        onBlur={this.handleBlur.bind(this)} onChange={this.handleChange.bind(this)}/>
+        onBlur={this.handleBlur.bind(this)} onChange={this.handleChange.bind(this)}
+        ref={(input) => { this.textInput = input; }}/>
       <ul style={this.ulStyle}>
         {ulElems}
       </ul>
@@ -174,32 +230,33 @@ class CityInput extends React.Component<any, any> {
 }
 
 class Preview extends React.Component<any, any> {
-  constructor() {
-    super()
-    let cities = fs.readFileSync("/Users/Garrett/workspaces/centroid/cities", "utf8").split("\n")
-    this.city = cities[Math.floor(Math.random() * cities.length)]
-    this.city = this.city.replace(/, /g , ",")
-    this.city = this.city.replace(/ /g, "+")
-    console.log("city is " + this.city)
+  constructor(props: any) {
+    super(props)
+    // let cities = fs.readFileSync("/Users/Garrett/workspaces/centroid/cities", "utf8").split("\n")
+    // this.city = cities[Math.floor(Math.random() * cities.length)]
+    // this.city = this.city.replace(/, /g , ",")
+    // this.city = this.city.replace(/ /g, "+")
+    console.log("city is " + this.props.city)
 
     let key = fs.readFileSync('/Users/Garrett/workspaces/centroid/api_key')
-    this.img_url = "https://maps.googleapis.com/maps/api/staticmap?center="+ this.city + 
+    this.img_url = "https://maps.googleapis.com/maps/api/staticmap?center="+ this.props.city + 
       "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + 
-      "&markers=color:red%7C" + this.city + 
+      "&markers=color:red%7C" + this.props.city + 
       "&key=" + key
 
   }
 
-  city: string
+  // city: string
   img_url: string
   imgStyle = {
-    width: "300px",
+    width: "100%",
     height: "180px",
     background: "#aacbff",
     border: "1px solid black",
     // verticalAlign: "middle",
   }
   divStyle = {
+    width: "300px",
     display: "inline-block",
     margin: "10px",
     lineHeight: "50px",
@@ -209,7 +266,7 @@ class Preview extends React.Component<any, any> {
 
   render () {
     return <div style={this.divStyle}>
-      <p>{this.city}</p>
+      <p>{this.props.city}</p>
       <img style={this.imgStyle} src={this.img_url}></img>
     </div>
   }
