@@ -67,6 +67,7 @@ class CityInput extends React.Component<any, any> {
     width: "100%",
   }
   ulStyle = {
+    color: "#444",
     backgroundColor: "#fff",
     listStyleType: "none",
     margin: 0,
@@ -74,7 +75,7 @@ class CityInput extends React.Component<any, any> {
     display: "none",
     position: "relative",
     overflowY: "scroll",
-    height: "250px",
+    maxHeight: "250px",
     zIndex: 1,
   }
   liStyle = {
@@ -83,7 +84,8 @@ class CityInput extends React.Component<any, any> {
     borderBottom: "1px solid black",
   }
   matchStyle = {
-    color: "orange"
+    color: "#000",
+    fontWeight: "bold",
   }
 
   handleFocus() {
@@ -108,8 +110,6 @@ class CityInput extends React.Component<any, any> {
 
     if (event.target.value !== "") {
       let results = this.state.fz.search(event.target.value)
-      console.log("results are:")
-      console.log(results)
       let newMatches = []
       let newMatchIndices: any[][] = []
       for (let i = 0; i < results.length; i++) {
@@ -129,27 +129,25 @@ class CityInput extends React.Component<any, any> {
   }
 
   getHighlightedElem(i: number): JSX.Element {
-    // console.log("matchIndices[i] is:")
-    // console.log(this.state.matchIndices[i])
     let indices = this.state.matchIndices[i].indices
-    // console.log("indices for elem" + i + " are:")
-    // console.log(indices)
-    let elem: JSX.Element[] = []
+    let spans: JSX.Element[] = []
     let curr = 0
     for (let j = 0; j < indices.length; j++) {
-      console.log("curr is %s; next hi index is at %s", curr, indices[j][0])
-      if (curr !== indices[j][0]) { // if curr is not equal to the start of next highlight
-        elem.push(<span>{this.state.matches[j].substring(curr, indices[j][0])}</span>)
+      if (curr !== indices[j][0]) {
+        let substr = this.state.matches[i].substring(curr, indices[j][0])
+        spans.push(<span>{substr}</span>)
         curr = indices[j][0]
       }
-      elem.push(<span style={this.matchStyle}>{this.state.matches[j].substring(indices[j][0], indices[j][1] + 1)}</span>)
+      let substr = this.state.matches[i].substring(indices[j][0], indices[j][1] + 1)
+      spans.push(<span style={this.matchStyle}>{substr}</span>)
       curr = indices[j][1] + 1
     }
     if (curr !== this.state.matches[i].length) {
-      elem.push(<span>{this.state.matches[i].substring(curr, this.state.matches[i].length)}</span>)
+      let substr = this.state.matches[i].substring(curr, this.state.matches[i].length)
+      spans.push(<span>{substr}</span>)
     }
 
-    return <li style={this.liStyle}>{elem}</li>
+    return <li style={this.liStyle}>{spans}</li>
   }
 
   render() {
@@ -157,7 +155,6 @@ class CityInput extends React.Component<any, any> {
     for (let i = 0; i < this.state.matches.length; i++) {
       let elem: JSX.Element
       if (this.state.matchIndices.length !== 0) {
-        console.log("getting highlighted elem")
         elem = this.getHighlightedElem(i)
       } else {
         elem = <li style={this.liStyle}>{this.state.matches[i]}</li>
@@ -186,7 +183,6 @@ class Preview extends React.Component<any, any> {
     console.log("city is " + this.city)
 
     let key = fs.readFileSync('/Users/Garrett/workspaces/centroid/api_key')
-    // console.log("api key is " + key)
     this.img_url = "https://maps.googleapis.com/maps/api/staticmap?center="+ this.city + 
       "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + 
       "&markers=color:red%7C" + this.city + 
