@@ -85,7 +85,7 @@ class CityInput extends React.Component<any, any> {
   style = {
     width: "200px",
     height: "50px",
-    padding: "5px",
+    padding: "5px 10px",
   }
   inputStyle = {
     width: "100%",
@@ -101,12 +101,15 @@ class CityInput extends React.Component<any, any> {
     overflowY: "scroll",
     maxHeight: "250px",
     zIndex: 1,
+    // opacity: 0.95,
+    boxShadow: "0 5px 15px 5px rgba(0, 0, 0, 0.125)",
+    borderRadius: "0 0 3px 3px",
   }
   liStyle = {
-    borderLeft: "1px solid #444",
+    // borderLeft: "1px solid #444",
     // borderRight: "1px solid #444",
     borderBottom: "1px solid #444",
-    padding: "1px",
+    padding: "3px",
     cursor: "pointer",
   }
   matchStyle = {
@@ -218,12 +221,15 @@ class CityInput extends React.Component<any, any> {
       ulElems.push(liElem)
     }
 
+    let ulHideScrollbarStyle = <style>{"::-webkit-scrollbar {width: 0px;}"}</style>
+
     return <div style={this.style}>
       <input value={this.state.inputText} style={this.inputStyle} type="text" name="city"
         placeholder="city"onFocus={this.handleFocus.bind(this)}
         onBlur={this.handleBlur.bind(this)} onChange={this.handleChange.bind(this)}
         ref={(input) => { this.textInput = input; }}/>
       <ul style={this.ulStyle}>
+        {ulHideScrollbarStyle}
         {ulElems}
       </ul>
     </div>
@@ -239,8 +245,8 @@ class Preview extends React.Component<any, any> {
 
     let key = fs.readFileSync('/Users/Garrett/workspaces/centroid/api_key').toString()
     this.state = {
-      imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ this.props.city + 
-        "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + 
+      imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ cityEscaped + 
+        "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
         "&markers=color:red%7C" + cityEscaped + 
         "&key=" + key,
       latLon: "",
@@ -264,40 +270,25 @@ class Preview extends React.Component<any, any> {
     fontFamily: "monospace",
   }
 
-  getLatLon(city: string, apiKey: string): [number, number] {
+  getLatLon(city: string, apiKey: string) {
     let requestPath = "/maps/api/geocode/json?address=" + city + "&key=" + apiKey
-
-    // const postData = requestPath.stringify({
-    //   'msg': 'Hello World!'
-    // });
 
     const options = {
       hostname: 'maps.googleapis.com',
       port: 443,
       path: requestPath,
       method: 'GET',
-      // headers: {
-      //   'Content-Type': 'application/x-www-form-urlencoded',
-      //   'Content-Length': Buffer.byteLength(postData)
-      // }
     };
 
-    console.log("making request with path " + requestPath)
     const req = https.request(options, (res) => {
-      let temp = ""
-      // console.log(`STATUS: ${res.statusCode}`);
-      // console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
+      let fullResponse = ""
+      console.log(`STATUS: ${res.statusCode}`);
       res.setEncoding('utf8');
       res.on('data', (chunk) => {
-        // console.log(`BODY: ${chunk}`);
-        temp += chunk
+        fullResponse += chunk
       });
       res.on('end', () => {
-        // console.log('No more data in response.');
-        // console.log("full response:")
-        let obj = JSON.parse(temp)
-        // console.log(obj)
-        // console.log(obj.results[0].geometry.location)
+        let obj = JSON.parse(fullResponse)
         let loc = obj.results[0].geometry.location
         this.setState({
           latLon: "(" + loc.lat + ", " + loc.lng + ")"
@@ -309,25 +300,76 @@ class Preview extends React.Component<any, any> {
       console.error(`problem with request: ${e.message}`);
     });
 
-    // write data to request body
-    // req.write(postData);
     req.end();
-
-    return [0, 0]
+    console.log("making request with path " + requestPath)
   }
 
   render () {
     return <div style={this.divStyle}>
       <p>{this.props.city}</p>
       <p>{this.state.latLon}</p>
-      <img style={this.imgStyle} src={this.state.imgUrl}></img>
+      <img style={this.imgStyle} src={this.state.imgUrl}/>
     </div>
+  }
+}
+
+class Centroid extends React.Component<any, any> {
+  constructor() {
+    super()
+    this.state = {
+      imgUrl: ""
+    }
+  }
+
+  buttonStyle = {
+    display: "block",
+    fontSize: "16px",
+    padding: "3px",
+    margin: "10px",
+    borderRadius: "3px",
+    backgroundColor: "#fff",
+  }
+  imgStyle = {
+    // width: "100%",
+    width: "700",
+    height: "500px",
+    background: "#aacbff",
+    border: "1px solid black",
+    margin: "0 auto",
+    display: "block",
+  }
+
+  compute() {
+    let key = fs.readFileSync('/Users/Garrett/workspaces/centroid/api_key').toString()
+    console.log("computing centroid")
+    this.setState({
+      imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ "Tokyo,Japan" + 
+      "&zoom=5&size=640x600&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
+      "&markers=color:red%7C" + "Tokyo,Japan" + 
+      "&key=" + key
+    })
+  }
+
+  render() {
+    if (this.state.imgUrl.length !== 0) {
+      return <div>
+        <button style={this.buttonStyle} onClick={this.compute.bind(this)}>Compute Centroid</button>
+        <img style={this.imgStyle} src={this.state.imgUrl}/>
+      </div>
+    } else {
+      return <div>
+        <button style={this.buttonStyle} onClick={this.compute.bind(this)}>Compute Centroid</button>
+      </div>
+    }
   }
 }
 
 function render() {
   ReactDOM.render(
-    <PreviewBar/>,
+    <div>
+      <PreviewBar/>
+      <Centroid/>
+    </div>,
     document.getElementById('root')
   )
 }

@@ -1,5 +1,7 @@
 TODO
 ----
+* write code to determine if selected cities span more than one hemisphere
+* write compute centroid rust code
 * remove city button
 * search box focus shortcut (ctrl/cmd+L)
 * improve fuse perf
