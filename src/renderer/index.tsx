@@ -213,22 +213,20 @@ class CityInput extends React.Component<any, any> {
         liContent = this.state.matches[i]
       }
 
-      let hoverStyle = <style>{
-        "#dropdownEntry:hover {background-color: #f2f4f7}"
-      }</style>
+      let hoverStyle = <style>{"#dropdownEntry:hover {background-color: #e0ecff}"}</style>
       let liElem = <li id="dropdownEntry" onMouseDown={this.getMouseDownHandler(this.state.matches[i])} style={this.liStyle}>{hoverStyle}{liContent}</li>
 
       ulElems.push(liElem)
     }
 
-    let ulHideScrollbarStyle = <style>{"::-webkit-scrollbar {width: 0px;}"}</style>
+    let ulHideScrollbarStyle = <style>{"#cityList::-webkit-scrollbar {width: 0px;}"}</style>
 
     return <div style={this.style}>
       <input value={this.state.inputText} style={this.inputStyle} type="text" name="city"
         placeholder="city"onFocus={this.handleFocus.bind(this)}
         onBlur={this.handleBlur.bind(this)} onChange={this.handleChange.bind(this)}
         ref={(input) => { this.textInput = input; }}/>
-      <ul style={this.ulStyle}>
+      <ul id="cityList" style={this.ulStyle}>
         {ulHideScrollbarStyle}
         {ulElems}
       </ul>
@@ -249,7 +247,7 @@ class Preview extends React.Component<any, any> {
         "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
         "&markers=color:red%7C" + cityEscaped + 
         "&key=" + key,
-      latLon: "",
+      latLon: " ",
     }
     this.getLatLon(cityEscaped, key)
   }
@@ -331,7 +329,7 @@ class Centroid extends React.Component<any, any> {
   }
   imgStyle = {
     // width: "100%",
-    width: "700",
+    width: "640px",
     height: "500px",
     background: "#aacbff",
     border: "1px solid black",
@@ -344,7 +342,7 @@ class Centroid extends React.Component<any, any> {
     console.log("computing centroid")
     this.setState({
       imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ "Tokyo,Japan" + 
-      "&zoom=5&size=640x600&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
+      "&zoom=5&size=640x500&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
       "&markers=color:red%7C" + "Tokyo,Japan" + 
       "&key=" + key
     })

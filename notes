@@ -4,7 +4,9 @@ TODO
 * write compute centroid rust code
 * remove city button
 * search box focus shortcut (ctrl/cmd+L)
-* improve fuse perf
+* improve fuse perf:
+    * make call to fuse async so it doesn't slow down text input response, or
+    * replace with skim (rust fuzzy search)
 
 Idea
 ----
