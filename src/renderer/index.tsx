@@ -84,7 +84,7 @@ class CityInput extends React.Component<any, any> {
   allCities = fs.readFileSync("/Users/Garrett/workspaces/centroid/cities", "utf8").split("\n")
   style = {
     width: "200px",
-    height: "50px",
+    height: "20px",
     padding: "5px 10px",
   }
   inputStyle = {
@@ -262,7 +262,7 @@ class Preview extends React.Component<any, any> {
   divStyle = {
     width: "300px",
     display: "inline-block",
-    margin: "10px",
+    margin: "0 10px 10px 10px",
     // lineHeight: "50px",
     textAlign: "center",
     fontFamily: "monospace",
@@ -330,7 +330,7 @@ class Centroid extends React.Component<any, any> {
   imgStyle = {
     // width: "100%",
     width: "640px",
-    height: "500px",
+    height: "400px",
     background: "#aacbff",
     border: "1px solid black",
     margin: "0 auto",
@@ -342,7 +342,7 @@ class Centroid extends React.Component<any, any> {
     console.log("computing centroid")
     this.setState({
       imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ "Tokyo,Japan" + 
-      "&zoom=5&size=640x500&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
+      "&zoom=5&size=640x400&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
       "&markers=color:red%7C" + "Tokyo,Japan" + 
       "&key=" + key
     })
