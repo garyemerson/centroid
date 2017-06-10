@@ -9,6 +9,7 @@ import Fuse = require('fuse.js')
 import https = require('https')
 
 native.init()
+console.log("getting random number from rust: " + native.getRandNum(1))
 console.log("From index.tsx/Rust:", native.hello())
 
 // Get access to dialog boxes in our main UI process.
@@ -315,7 +316,8 @@ class Centroid extends React.Component<any, any> {
   constructor() {
     super()
     this.state = {
-      imgUrl: ""
+      imgUrl: "",
+      contacts: "",
     }
   }
 
@@ -337,7 +339,44 @@ class Centroid extends React.Component<any, any> {
     display: "block",
   }
 
+  getContacts() {
+    console.log("getting contacts")
+    let requestPath = "/contacts/"
+
+    const options = {
+      hostname: 'timageprocessingapi.azurewebsites.net',
+      port: 443,
+      path: requestPath,
+      method: 'GET',
+    };
+
+    const req = https.request(options, (res) => {
+      let fullResponse = ""
+      console.log(`STATUS: ${res.statusCode}`);
+      res.setEncoding('utf8');
+      res.on('data', (chunk) => {
+        fullResponse += chunk
+      });
+      res.on('end', () => {
+        let obj = JSON.parse(fullResponse)
+        console.log("contacts results:")
+        console.log(fullResponse)
+        this.setState({
+          contacts: fullResponse
+        });
+      });
+    });
+
+    req.on('error', (e) => {
+      console.error(`problem with request: ${e.message}`);
+    });
+
+    req.end();
+    console.log("making request with path " + requestPath)
+  }
+
   compute() {
+    this.getContacts()
     let key = fs.readFileSync('/Users/Garrett/workspaces/centroid/api_key').toString()
     console.log("computing centroid")
     this.setState({
@@ -352,6 +391,7 @@ class Centroid extends React.Component<any, any> {
     if (this.state.imgUrl.length !== 0) {
       return <div>
         <button style={this.buttonStyle} onClick={this.compute.bind(this)}>Compute Centroid</button>
+        <p>{this.state.contacts}</p>
         <img style={this.imgStyle} src={this.state.imgUrl}/>
       </div>
     } else {

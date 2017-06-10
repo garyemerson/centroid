@@ -5,11 +5,12 @@ extern crate log;
 extern crate neon;
 extern crate rand;
 
-use neon::js::{JsNull, JsString};
+use neon::js::{JsNull, JsString, JsNumber};
 use neon::vm::{Call, JsResult};
 use std::thread;
 use rand::os::OsRng;
 use rand::Rng;
+use neon::vm::Lock;
 
 // Initialize this extension.
 fn init(_call: Call) -> JsResult<JsNull> {
@@ -28,7 +29,20 @@ fn hello(call: Call) -> JsResult<JsString> {
     Ok(JsString::new(scope, &format!("Rust randomly generated {}", res.unwrap())).unwrap())
 }
 
+fn get_rand_num(call: Call) -> JsResult<JsNumber> {
+    let mut max = call.arguments.require(call.scope, 0)?.check::<JsNumber>()?;
+    // let max = Lock::grab(max, |data| { data });
+    // max.grab(|data| { data });
+
+    let mut r = OsRng::new().unwrap();
+    let num = r.next_u32();
+    let scope = call.scope;
+    Ok(JsNumber::new(scope, num as f64))
+}
+
 register_module!(m, {
-    try!(m.export("init", init));
-    m.export("hello", hello)
+    m.export("init", init)?;
+    m.export("hello", hello)?;
+    m.export("getRandNum", get_rand_num)?;
+    Ok(())
 });
