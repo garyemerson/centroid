@@ -9,8 +9,11 @@ import Fuse = require('fuse.js')
 import https = require('https')
 
 native.init()
-console.log("getting random number from rust: " + native.getRandNum(1))
-console.log("From index.tsx/Rust:", native.hello())
+// let latLons = [[14.59, 120.98], [40.71, -7.00], [19.43, -9.13]]
+// console.log("Are " + latLons + " contained in one hemisphere? " + native.oneHemisphere(latLons))
+
+let selectedCities: string[] = []
+let selectedCitiesLatLon: number[][] = []
 
 // Get access to dialog boxes in our main UI process.
 const remote = Electron.remote
@@ -18,9 +21,9 @@ const remote = Electron.remote
 class PreviewBar extends React.Component<any, any> {
   constructor() {
     super()
-    this.state = {
-      selectedCities: [],
-    }
+    // this.state = {
+    //   selectedCities: [],
+    // }
   }
 
   style = {
@@ -31,20 +34,24 @@ class PreviewBar extends React.Component<any, any> {
   };
 
   addSelectedCity(city: string) {
-    let newSelectedCities = this.state.selectedCities.slice()
-    newSelectedCities.push(city)
-    this.setState({
-      selectedCities: newSelectedCities,
-    })
+    // let newSelectedCities = this.state.selectedCities.slice()
+    // newSelectedCities.push(city)
+    // this.setState({
+    //   selectedCities: newSelectedCities,
+    // })
+
+    selectedCities.push(city)
     console.log("adding " + city)
     console.log("selectedCities is:")
-    console.log(newSelectedCities)
+    // console.log(newSelectedCities)
+    console.log(selectedCities)
+    render()
   }
 
   render () {
     let previews: JSX.Element[] = []
-    for (let i = 0; i < this.state.selectedCities.length; i++) {
-      previews.push(<Preview city={this.state.selectedCities[i]}/>)
+    for (let i = 0; i < selectedCities.length; i++) {
+      previews.push(<Preview city={selectedCities[i]}/>)
     }
 
     return <div style={this.style}>
@@ -140,6 +147,8 @@ class CityInput extends React.Component<any, any> {
 
     if (event.target.value !== "") {
       let results = this.state.fz.search(event.target.value)
+      let numToKeep = Math.min(results.length, 20)
+      results = results.slice(0, numToKeep)
       // console.log("search results:")
       // console.log(results)
       // let resultIndices: number[] = results.map(function(x: any): number { return x.item })
@@ -164,11 +173,11 @@ class CityInput extends React.Component<any, any> {
     }
   }
 
-  handleMouseDown(e: any, city: any) {
-    e.preventDefault();
-    console.log("processing click with this as " + city)
-    this.props.addSelectedCity(city)
-  }
+  // handleMouseDown(e: any, city: any) {
+  //   e.preventDefault();
+  //   console.log("processing click with this as " + city)
+  //   this.props.addSelectedCity(city)
+  // }
 
   getMouseDownHandler(city: string) {
     return function(e: any) {
@@ -289,6 +298,10 @@ class Preview extends React.Component<any, any> {
       res.on('end', () => {
         let obj = JSON.parse(fullResponse)
         let loc = obj.results[0].geometry.location
+        console.log(loc)
+        selectedCitiesLatLon.push([loc.lat, loc.lng])
+        console.log("selectedCitiesLatLon is:")
+        console.log(selectedCitiesLatLon)
         this.setState({
           latLon: "(" + loc.lat + ", " + loc.lng + ")"
         })
@@ -317,7 +330,6 @@ class Centroid extends React.Component<any, any> {
     super()
     this.state = {
       imgUrl: "",
-      contacts: "",
     }
   }
 
@@ -339,44 +351,13 @@ class Centroid extends React.Component<any, any> {
     display: "block",
   }
 
-  getContacts() {
-    console.log("getting contacts")
-    let requestPath = "/contacts/"
-
-    const options = {
-      hostname: 'timageprocessingapi.azurewebsites.net',
-      port: 443,
-      path: requestPath,
-      method: 'GET',
-    };
-
-    const req = https.request(options, (res) => {
-      let fullResponse = ""
-      console.log(`STATUS: ${res.statusCode}`);
-      res.setEncoding('utf8');
-      res.on('data', (chunk) => {
-        fullResponse += chunk
-      });
-      res.on('end', () => {
-        let obj = JSON.parse(fullResponse)
-        console.log("contacts results:")
-        console.log(fullResponse)
-        this.setState({
-          contacts: fullResponse
-        });
-      });
-    });
-
-    req.on('error', (e) => {
-      console.error(`problem with request: ${e.message}`);
-    });
-
-    req.end();
-    console.log("making request with path " + requestPath)
+  verifyOneHemisphere() {
+    console.log("hemisphere selectedCitiesLatLon is:")
+    console.log(selectedCitiesLatLon)
+    return native.oneHemisphere(selectedCitiesLatLon) ? "contained in one hemisphere" : "not contained in one hemisphere"
   }
 
   compute() {
-    this.getContacts()
     let key = fs.readFileSync('/Users/Garrett/workspaces/centroid/api_key').toString()
     console.log("computing centroid")
     this.setState({
@@ -391,7 +372,7 @@ class Centroid extends React.Component<any, any> {
     if (this.state.imgUrl.length !== 0) {
       return <div>
         <button style={this.buttonStyle} onClick={this.compute.bind(this)}>Compute Centroid</button>
-        <p>{this.state.contacts}</p>
+        <p>{this.verifyOneHemisphere()}</p>
         <img style={this.imgStyle} src={this.state.imgUrl}/>
       </div>
     } else {

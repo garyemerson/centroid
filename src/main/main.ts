@@ -4,7 +4,7 @@ import path = require('path');
 import native = require('../../native');
 
 native.init()
-console.log("From main.ts/Rust:", native.hello())
+console.log("From main.ts/Rust:", native.getRandNum(100))
 
 // Global window object so it doesn't go out of scope and get GCed.
 let win: Electron.BrowserWindow | null
