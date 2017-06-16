@@ -2,12 +2,12 @@
 	"build_systems":
 	[
 		{
-			"name": "build",
+			"name": "build_proj",
 			"shell_cmd": "cd /Users/Garrett/workspaces/centroid && . env.sh && npm run install",
 			"syntax": "build_results.sublime-syntax"
 		},
 		{
-			"name": "run",
+			"name": "run_proj",
 			"shell_cmd": "cd /Users/Garrett/workspaces/centroid && . env.sh && npm run install && npm start",
 			"syntax": "build_results.sublime-syntax"
 		}

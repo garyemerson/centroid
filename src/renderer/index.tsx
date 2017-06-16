@@ -10,7 +10,22 @@ import https = require('https')
 
 native.init()
 // let latLons = [[14.59, 120.98], [40.71, -7.00], [19.43, -9.13]]
-// console.log("Are " + latLons + " contained in one hemisphere? " + native.oneHemisphere(latLons))
+// let latLons = [[80, 120.98], [10, -7.00], [50, -9.13]]
+// let latLons = [[0, 120.98], [0, -7.00], [0, -9.13]]
+// let latLons = [[90, 120.98], [0, -90], [0, -180]]
+// let latLons = [[90, 120.98], [90, -90], [90, -180], [90, -22]]
+// let latLons = [[90, 0], [0, 0], [0, 90], [0, 180], [0, -90], [-90, 0]]
+// let latLons = [[90, 0], [0, 0], [0, 90], [0, 180], [0, -90]]
+let latLons = [[1, 0], [-1, 120], [1, -120]]
+console.log("Are " + printLatLons(latLons) + "contained in one hemisphere? " + (native.oneHemisphere(latLons) ? "yes" : "no"))
+
+function printLatLons(latLons: number[][]) {
+  let str = ""
+  for (let i = 0; i < latLons.length; i++) {
+    str += "(" + latLons[i][0] + "," + latLons[i][1] + ") "
+  }
+  return str
+}
 
 let selectedCities: string[] = []
 let selectedCitiesLatLon: number[][] = []
@@ -149,18 +164,14 @@ class CityInput extends React.Component<any, any> {
       let results = this.state.fz.search(event.target.value)
       let numToKeep = Math.min(results.length, 20)
       results = results.slice(0, numToKeep)
-      // console.log("search results:")
-      // console.log(results)
-      // let resultIndices: number[] = results.map(function(x: any): number { return x.item })
-      // resultIndices.sort()
-      // console.log("result indices:")
-      // console.log(resultIndices)
+
       let newMatches = []
       let newMatchIndices: any[][] = []
       for (let i = 0; i < results.length; i++) {
         newMatches.push(this.allCities[results[i].item])
         newMatchIndices.push(results[i].matches[0])
       }
+      
       this.setState({
         matches: newMatches,
         matchIndices: newMatchIndices,

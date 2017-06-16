@@ -2,11 +2,16 @@ TODO
 ----
 * write code to determine if selected cities span more than one hemisphere
 * write compute centroid rust code
-* remove city button
+* button to remove selected city
 * search box focus shortcut (ctrl/cmd+L)
-* improve fuse perf:
-    * make call to fuse async so it doesn't slow down text input response, or
-    * replace with skim (rust fuzzy search)
+* Immediate calculation instead of having to push button
+* Allow arrow keys to be used in dropdown selection
+
+Useful Info
+-----------
+* http://members.tripod.com/~Paul_Kirby/vector/VLintro.html#magniofvectors
+* https://github.com/VictorDavis/GeoConvexHull
+* http://rstudio-pubs-static.s3.amazonaws.com/27121_a22e51b47c544980bad594d5e0bb2d04.html
 
 Idea
 ----
