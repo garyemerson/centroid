@@ -111,21 +111,30 @@ fn one_hemisphere_xyz(points: &Vec<Point>) -> bool {
     //     }
     // }
 
-    let vertices: Arc<Mutex<Vec<Point>>> = Arc::new(Mutex::new(Vec::new()));
-    possible_vertices.into_par_iter().for_each(|possible| {
-        let vertices = vertices.clone();
-        let mut orth_all = true;
+    // let vertices: Arc<Mutex<Vec<Point>>> = Arc::new(Mutex::new(Vec::new()));
+    // possible_vertices.into_par_iter().for_each(|possible| {
+    //     let vertices = vertices.clone();
+    //     let mut orth_all = true;
+    //     for p in points {
+    //         if !orth_or_less(&possible, p) {
+    //             orth_all = false;
+    //             break;
+    //         }
+    //     }
+    //     if orth_all {
+    //         vertices.lock().unwrap().push(possible);
+    //     }
+    // });
+    // let vertices = vertices.lock().unwrap();
+
+    let vertices: Vec<Point> = possible_vertices.into_par_iter().filter(|possible| {
         for p in points {
             if !orth_or_less(&possible, p) {
-                orth_all = false;
-                break;
+                return false;
             }
         }
-        if orth_all {
-            vertices.lock().unwrap().push(possible);
-        }
-    });
-    let vertices = vertices.lock().unwrap();
+        true
+    }).collect();
 
     // centroid(&vertices);
     println!("{} final vertices", vertices.len());
