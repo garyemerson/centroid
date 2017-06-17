@@ -16,8 +16,20 @@ native.init()
 // let latLons = [[90, 120.98], [90, -90], [90, -180], [90, -22]]
 // let latLons = [[90, 0], [0, 0], [0, 90], [0, 180], [0, -90], [-90, 0]]
 // let latLons = [[90, 0], [0, 0], [0, 90], [0, 180], [0, -90]]
-let latLons = [[1, 0], [-1, 120], [1, -120]]
-console.log("Are " + printLatLons(latLons) + "contained in one hemisphere? " + (native.oneHemisphere(latLons) ? "yes" : "no"))
+// let latLons = [[1, 0], [-1, 90], [1, 180], [1, -90]]
+
+let latLons: number[][] = []
+for (let i = 0; i < 10000; i++) {
+  let lat = (Math.random() * 180) - 90
+  let lon = (Math.random() * 360) - 180
+  latLons.push([lat, lon])
+}
+
+let start = performance.now()
+console.log("latLons contained in one hemisphere? " + (native.oneHemisphere(latLons) ? "yes" : "no"))
+let end = performance.now()
+console.log("oneHemisphere took " + (end - start) + " milliseconds.")
+
 
 function printLatLons(latLons: number[][]) {
   let str = ""

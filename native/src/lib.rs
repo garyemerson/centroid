@@ -4,6 +4,7 @@ extern crate log;
 #[macro_use]
 extern crate neon;
 extern crate rand;
+extern crate rayon;
 
 use neon::js::{JsNull, JsString, JsNumber, JsArray, JsBoolean};
 use neon::vm::{Call, JsResult};
@@ -12,6 +13,8 @@ use rand::os::OsRng;
 use rand::Rng;
 use std::f64::{self, consts};
 use std::fmt;
+use rayon::prelude::*;
+use std::sync::{Arc, Mutex};
 
 // Initialize this extension.
 fn init(_call: Call) -> JsResult<JsNull> {
@@ -75,7 +78,15 @@ impl fmt::Display for Point {
     }
 }
 
-fn one_hemisphere_xyz(points: Vec<Point>) -> bool {
+fn centroid(points: &Vec<Point>) -> Point {
+    let avg_x: f64 = points.iter().fold(0.0, |acc, ref p| acc + p.x) / (points.len() as f64);
+
+    println!("avg_x is {:.2}", avg_x);
+
+    Point { x: 0.0, y: 0.0, z: 0.0}
+}
+
+fn one_hemisphere_xyz(points: &Vec<Point>) -> bool {
     let mut possible_vertices = Vec::with_capacity(points.len() * points.len());
     for i in 0..points.len() {
         for j in 0..points.len() {
@@ -86,20 +97,37 @@ fn one_hemisphere_xyz(points: Vec<Point>) -> bool {
         }
     }
 
-    let mut vertices = Vec::new();
-    for possible in &possible_vertices {
+    // let mut vertices = Vec::new();
+    // for possible in &possible_vertices {
+    //     let mut orth_all = true;
+    //     for p in &points {
+    //         if !orth_or_less(possible, p) {
+    //             orth_all = false;
+    //             break;
+    //         }
+    //     }
+    //     if orth_all {
+    //         vertices.push(possible);
+    //     }
+    // }
+
+    let vertices: Arc<Mutex<Vec<Point>>> = Arc::new(Mutex::new(Vec::new()));
+    possible_vertices.into_par_iter().for_each(|possible| {
+        let vertices = vertices.clone();
         let mut orth_all = true;
-        for p in &points {
-            if !orth_or_less(possible, p) {
+        for p in points {
+            if !orth_or_less(&possible, p) {
                 orth_all = false;
                 break;
             }
         }
         if orth_all {
-            vertices.push(possible);
+            vertices.lock().unwrap().push(possible);
         }
-    }
+    });
+    let vertices = vertices.lock().unwrap();
 
+    // centroid(&vertices);
     println!("{} final vertices", vertices.len());
 
     vertices.len() != 0
@@ -142,7 +170,7 @@ fn mag(p: &Point) -> f64 {
 fn orth_or_less(p1: &Point, p2: &Point) -> bool {
     let angle = (dot(p1, p2) / (mag(p1) * mag(p2))).acos();
 
-    println!("angle between {} and {} is {}", p1, p2, angle);
+    // println!("angle between {} and {} is {}", p1, p2, angle);
 
     angle <= consts::PI/2.0
 }
@@ -168,7 +196,7 @@ fn one_hemisphere_lat_lon(call: Call) -> JsResult<JsBoolean> {
         .map(|v: Vec<f64>| to_xyz(v[0], v[1]))
         .collect::<Vec<Point>>();
 
-    Ok(JsBoolean::new(call.scope, one_hemisphere_xyz(xyz_points)))
+    Ok(JsBoolean::new(call.scope, one_hemisphere_xyz(&xyz_points)))
 }
 
 fn to_deg(rad: f64) -> f64 {
@@ -195,7 +223,7 @@ fn to_xyz(lat: f64, lon: f64) -> Point {
     let y = w * (lon_rad - consts::PI/2.0).sin();
     let z = (lat_rad).sin();
 
-    println!("({}, {}) -> ({:.2}, {:.2}, {:.2})", lat, lon, x, y, z);
+    // println!("({}, {}) -> ({:.2}, {:.2}, {:.2})", lat, lon, x, y, z);
 
     Point { x: x, y: y, z: z }
 }
