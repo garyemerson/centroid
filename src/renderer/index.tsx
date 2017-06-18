@@ -18,17 +18,17 @@ native.init()
 // let latLons = [[90, 0], [0, 0], [0, 90], [0, 180], [0, -90]]
 // let latLons = [[1, 0], [-1, 90], [1, 180], [1, -90]]
 
-let latLons: number[][] = []
-for (let i = 0; i < 10000; i++) {
-  let lat = (Math.random() * 180) - 90
-  let lon = (Math.random() * 360) - 180
-  latLons.push([lat, lon])
-}
+// let latLons: number[][] = []
+// for (let i = 0; i < 5; i++) {
+//   let lat = (Math.random() * 180) - 90
+//   let lon = (Math.random() * 360) - 180
+//   latLons.push([lat, lon])
+// }
 
-let start = performance.now()
-console.log("latLons contained in one hemisphere? " + (native.oneHemisphere(latLons) ? "yes" : "no"))
-let end = performance.now()
-console.log("oneHemisphere took " + (end - start) + " milliseconds.")
+// let start = performance.now()
+// console.log("the centroid of latLons is " + (native.computeCentroid(latLons)))
+// let end = performance.now()
+// console.log("oneHemisphere took " + (end - start) + " milliseconds.")
 
 
 function printLatLons(latLons: number[][]) {
@@ -353,6 +353,7 @@ class Centroid extends React.Component<any, any> {
     super()
     this.state = {
       imgUrl: "",
+      centroidLatLon: "",
     }
   }
 
@@ -374,33 +375,54 @@ class Centroid extends React.Component<any, any> {
     display: "block",
   }
 
-  verifyOneHemisphere() {
-    console.log("hemisphere selectedCitiesLatLon is:")
-    console.log(selectedCitiesLatLon)
-    return native.oneHemisphere(selectedCitiesLatLon) ? "contained in one hemisphere" : "not contained in one hemisphere"
+  divStyle = {
+    width: "640px",
+    display: "block",
+    // margin: "0 10px 10px 10px",
+    // lineHeight: "50px",
+    textAlign: "center",
+    fontFamily: "monospace",
+    margin: "0 auto",
   }
 
   compute() {
     let key = fs.readFileSync('/Users/Garrett/workspaces/centroid/api_key').toString()
     console.log("computing centroid")
-    this.setState({
-      imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ "Tokyo,Japan" + 
-      "&zoom=5&size=640x400&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
-      "&markers=color:red%7C" + "Tokyo,Japan" + 
-      "&key=" + key
-    })
+
+    let centroid: number[] = native.computeCentroid(selectedCitiesLatLon)
+    if (centroid.length === 0) {
+      this.setState({
+        imgUrl: "none"
+      })
+    } else {
+      console.log("centroid is " + centroid)
+      this.setState({
+        imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ centroid[0] + "," + centroid[1] + 
+        "&zoom=5&size=640x400&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
+        "&markers=color:red%7C" + centroid[0] + "," + centroid[1] + 
+        "&key=" + key,
+        centroidLatLon: "" + centroid[0] + "," + centroid[1],
+      })
+    }
   }
 
   render() {
-    if (this.state.imgUrl.length !== 0) {
+    if (this.state.imgUrl.length === 0) { // we haven't yet attempted to compute centroid
       return <div>
         <button style={this.buttonStyle} onClick={this.compute.bind(this)}>Compute Centroid</button>
-        <p>{this.verifyOneHemisphere()}</p>
-        <img style={this.imgStyle} src={this.state.imgUrl}/>
       </div>
-    } else {
+    } else if (this.state.imgUrl === "none") { // we've tried computing the centroid and there is none
       return <div>
         <button style={this.buttonStyle} onClick={this.compute.bind(this)}>Compute Centroid</button>
+        <p>not contained in one hemisphere</p>
+      </div>
+    } else { // there is a centroid
+      return <div>
+        <button style={this.buttonStyle} onClick={this.compute.bind(this)}>Compute Centroid</button>
+        <div  style={this.divStyle}>
+          <p>({this.state.centroidLatLon})</p>
+          <img style={this.imgStyle} src={this.state.imgUrl}/>
+        </div>
       </div>
     }
   }

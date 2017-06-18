@@ -3,7 +3,7 @@ declare module native {
   function hello(): string;
   function getRandNum(max: number): number;
   function getMax(arr: number[]): number;
-  function oneHemisphere(latLons: number[][]): number;
+  function computeCentroid(latLons: number[][]): number[];
 }
 
 export = native;

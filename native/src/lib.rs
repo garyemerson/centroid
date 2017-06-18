@@ -6,7 +6,7 @@ extern crate neon;
 extern crate rand;
 extern crate rayon;
 
-use neon::js::{JsNull, JsString, JsNumber, JsArray, JsBoolean};
+use neon::js::{JsNull, JsString, JsNumber, JsArray};
 use neon::vm::{Call, JsResult};
 use std::thread;
 use rand::os::OsRng;
@@ -14,7 +14,10 @@ use rand::Rng;
 use std::f64::{self, consts};
 use std::fmt;
 use rayon::prelude::*;
-use std::sync::{Arc, Mutex};
+use neon::mem::Handle;
+use neon::js::Object;
+use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
 
 // Initialize this extension.
 fn init(_call: Call) -> JsResult<JsNull> {
@@ -71,22 +74,54 @@ struct Point {
     y: f64,
     z: f64,
 }
-
 impl fmt::Display for Point {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "({:.2}, {:.2}, {:.2})", self.x, self.y, self.z)
     }
 }
-
-fn centroid(points: &Vec<Point>) -> Point {
-    let avg_x: f64 = points.iter().fold(0.0, |acc, ref p| acc + p.x) / (points.len() as f64);
-
-    println!("avg_x is {:.2}", avg_x);
-
-    Point { x: 0.0, y: 0.0, z: 0.0}
+impl PartialEq for Point {
+    fn eq(&self, other: &Point) -> bool {
+        self.x == other.x &&
+        self.y == other.y &&
+        self.z == other.z
+    }
+}
+impl Eq for Point {}
+impl Hash for Point {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        (self.x as u64).hash(state);
+        (self.y as u64).hash(state);
+        (self.z as u64).hash(state);
+    }
 }
 
-fn one_hemisphere_xyz(points: &Vec<Point>) -> bool {
+fn project(p: &Point) -> Point {
+    let m = mag(p);
+    Point {
+        x: p.x / m,
+        y: p.y / m,
+        z: p.z / m,
+    }
+}
+
+fn compute_centroid_xyz(points: &Vec<Point>) -> Result<Point, String> {
+    let vertices = one_hemisphere_xyz(points);
+    if vertices.len() == 0 {
+        println!("Points not contained in one hemishpere.");
+        return Err("Points not contained in one hemishpere.".to_string());
+    }
+
+    let avg_x = points.iter().fold(0.0, |acc, ref p| acc + p.x) / (points.len() as f64);
+    let avg_y = points.iter().fold(0.0, |acc, ref p| acc + p.y) / (points.len() as f64);
+    let avg_z = points.iter().fold(0.0, |acc, ref p| acc + p.z) / (points.len() as f64);
+    let centroid = project(&Point { x: avg_x, y: avg_y, z: avg_z});
+
+    println!("centroid is {:?} with magnitude {}", centroid, mag(&centroid));
+    Ok(centroid)
+}
+
+// TODO: handle when there are duplicate points
+fn one_hemisphere_xyz(points: &Vec<Point>) -> Vec<Point> {
     let mut possible_vertices = Vec::with_capacity(points.len() * points.len());
     for i in 0..points.len() {
         for j in 0..points.len() {
@@ -97,36 +132,6 @@ fn one_hemisphere_xyz(points: &Vec<Point>) -> bool {
         }
     }
 
-    // let mut vertices = Vec::new();
-    // for possible in &possible_vertices {
-    //     let mut orth_all = true;
-    //     for p in &points {
-    //         if !orth_or_less(possible, p) {
-    //             orth_all = false;
-    //             break;
-    //         }
-    //     }
-    //     if orth_all {
-    //         vertices.push(possible);
-    //     }
-    // }
-
-    // let vertices: Arc<Mutex<Vec<Point>>> = Arc::new(Mutex::new(Vec::new()));
-    // possible_vertices.into_par_iter().for_each(|possible| {
-    //     let vertices = vertices.clone();
-    //     let mut orth_all = true;
-    //     for p in points {
-    //         if !orth_or_less(&possible, p) {
-    //             orth_all = false;
-    //             break;
-    //         }
-    //     }
-    //     if orth_all {
-    //         vertices.lock().unwrap().push(possible);
-    //     }
-    // });
-    // let vertices = vertices.lock().unwrap();
-
     let vertices: Vec<Point> = possible_vertices.into_par_iter().filter(|possible| {
         for p in points {
             if !orth_or_less(&possible, p) {
@@ -136,22 +141,7 @@ fn one_hemisphere_xyz(points: &Vec<Point>) -> bool {
         true
     }).collect();
 
-    // centroid(&vertices);
-    println!("{} final vertices", vertices.len());
-
-    vertices.len() != 0
-}
-
-#[test]
-fn one_hemisphere_test() {
-    let rt2_over_2 = 2f64.sqrt() / 2.0;
-    let pts = vec![
-        Point { x: 0.0, y: rt2_over_2, z: rt2_over_2 },
-        Point { x: rt2_over_2, y: 0.0, z: rt2_over_2 },
-        Point { x: 0.0, y: (-1.0) * rt2_over_2, z: rt2_over_2 },
-        Point { x: (-1.0) * rt2_over_2, y: 0.0, z: rt2_over_2 },
-    ];
-    assert!(one_hemisphere_xyz(pts));
+    vertices
 }
 
 fn cross(p1: &Point, p2: &Point) -> Point {
@@ -178,14 +168,17 @@ fn mag(p: &Point) -> f64 {
 
 fn orth_or_less(p1: &Point, p2: &Point) -> bool {
     let angle = (dot(p1, p2) / (mag(p1) * mag(p2))).acos();
-
-    // println!("angle between {} and {} is {}", p1, p2, angle);
-
     angle <= consts::PI/2.0
 }
 
-fn one_hemisphere_lat_lon(call: Call) -> JsResult<JsBoolean> {
-    let mut lat_lons: Vec<Vec<f64>> = call.arguments.require(call.scope, 0)?
+fn dedup_points(mut points: Vec<Point>) -> Vec<Point> {
+    let set: HashSet<_> = points.drain(..).collect(); // dedup
+    points.extend(set.into_iter());
+    points
+}
+
+fn compute_centroid_lat_lon(call: Call) -> JsResult<JsArray> {
+    let lat_lons: Vec<Vec<f64>> = call.arguments.require(call.scope, 0)?
         .check::<JsArray>()?
         .to_vec(call.scope)?
         .into_iter()
@@ -200,12 +193,34 @@ fn one_hemisphere_lat_lon(call: Call) -> JsResult<JsBoolean> {
         })
         .collect::<Vec<Vec<f64>>>();
 
-    let xyz_points: Vec<Point> = lat_lons
+    let mut xyz_points: Vec<Point> = lat_lons
         .into_iter()
         .map(|v: Vec<f64>| to_xyz(v[0], v[1]))
         .collect::<Vec<Point>>();
+    xyz_points = dedup_points(xyz_points);
 
-    Ok(JsBoolean::new(call.scope, one_hemisphere_xyz(&xyz_points)))
+    println!("xyz points are:");
+    for p in &xyz_points {
+        println!("{:?}", p);
+    }
+
+    let centroid: Result<Point, String> = compute_centroid_xyz(&xyz_points);
+    match centroid {
+        Ok(p) => {
+            let arr: Handle<JsArray> = JsArray::new(call.scope, 3);
+            let (lat, lon) = to_lat_lon(&p);
+            println!("centroind lat lon is {:?}", (lat, lon));
+            arr.set(0, JsNumber::new(call.scope, lat)).unwrap();
+            arr.set(1, JsNumber::new(call.scope, lon)).unwrap();
+            Ok(arr)
+        },
+        Err(_) => {
+            // Err(Throw)
+
+            let arr: Handle<JsArray> = JsArray::new(call.scope, 0);
+            Ok(arr)
+        }
+    }
 }
 
 fn to_deg(rad: f64) -> f64 {
@@ -218,8 +233,21 @@ fn to_rad(deg: f64) -> f64 {
 
 fn to_lat_lon(p: &Point) -> (f64, f64) {
     let lat = to_deg(p.z.asin());
+
     let w = (p.x.powi(2) + p.y.powi(2)).sqrt();
-    let lon = to_deg((p.y / w).asin() + consts::PI/2.0);
+    let theta = to_deg((p.y / w).asin()).abs();
+    println!("theta is {}", theta);
+    let lon;
+    if p.x > 0.0 && p.y > 0.0 { // 1st quadrant
+        lon = theta + 90.0;
+    } else if p.x < 0.0 && p.y > 0.0 { // 2nd quadrant
+        lon = -90.0 - theta;
+    } else if p.x < 0.0 && p.y < 0.0 { // 3rd quadrant
+        lon = theta - 90.0;
+    } else { // 4th quadrant
+        lon = 90.0 - theta;
+    }
+
     (lat, lon)
 }
 
@@ -232,36 +260,7 @@ fn to_xyz(lat: f64, lon: f64) -> Point {
     let y = w * (lon_rad - consts::PI/2.0).sin();
     let z = (lat_rad).sin();
 
-    // println!("({}, {}) -> ({:.2}, {:.2}, {:.2})", lat, lon, x, y, z);
-
     Point { x: x, y: y, z: z }
-}
-
-fn dist(a: f64, b: f64) -> f64 {
-    (a - b).abs()
-}
-
-// fn compute_centroid(call: Call) -> JsResult<JsArray>
-
-fn max_gap(lats: &Vec<f64>) -> f64 {
-    let mut max_gap = 0.0;
-    for i in 0..(lats.len() - 1) {
-        println!("computing gap between {} and {}", lats[i], lats[i + 1]);
-        let curr_gap = dist(lats[i], lats[i + 1]);
-        println!("{} vs {}", curr_gap, max_gap);
-        if curr_gap > max_gap {
-            max_gap = curr_gap;
-        }
-    }
-
-    // compute gap between last and first
-    let wrap_gap = dist(lats[0], -180.0) + dist(lats[lats.len() - 1], 180.0);
-    if wrap_gap > max_gap {
-        max_gap = wrap_gap;
-    }
-
-    println!("found max gap of {}", max_gap);
-    max_gap
 }
 
 fn get_rand_num(call: Call) -> JsResult<JsNumber> {
@@ -277,6 +276,23 @@ register_module!(m, {
     m.export("hello", hello)?;
     m.export("getRandNum", get_rand_num)?;
     m.export("getMax", get_max)?;
-    m.export("oneHemisphere", one_hemisphere_lat_lon)?;
+    m.export("computeCentroid", compute_centroid_lat_lon)?;
     Ok(())
 });
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn one_hemisphere_test() {
+        let rt2_over_2 = 2f64.sqrt() / 2.0;
+        let pts = vec![
+            Point { x: 0.0, y: rt2_over_2, z: rt2_over_2 },
+            Point { x: rt2_over_2, y: 0.0, z: rt2_over_2 },
+            Point { x: 0.0, y: (-1.0) * rt2_over_2, z: rt2_over_2 },
+            Point { x: (-1.0) * rt2_over_2, y: 0.0, z: rt2_over_2 },
+        ];
+        assert!(one_hemisphere_xyz(pts));
+    }
+}
