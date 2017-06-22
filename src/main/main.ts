@@ -2,9 +2,9 @@ import { app, BrowserWindow, globalShortcut, ipcMain } from 'electron';
 import url = require('url');
 import path = require('path');
 import native = require('../../native');
+const {Menu, MenuItem} = require('electron')
 
 native.init()
-console.log("From main.ts/Rust:", native.getRandNum(100))
 
 // Global window object so it doesn't go out of scope and get GCed.
 let win: Electron.BrowserWindow | null
@@ -28,6 +28,205 @@ function createWindow() {
   win.on('closed', () => {
     win = null
   })
+
+  setupMenu()
+
+  // const menu = new Menu()
+  // console.log("menu is:")
+  // console.log(menu)
+  // menu.append(new MenuItem({
+  //   label: 'Print',
+  //   accelerator: 'CmdOrCtrl+P',
+  //   click: () => { console.log('time to print stuff') }
+  // }))
+  // Menu.setApplicationMenu(menu)
+}
+
+
+function setupMenu() {
+  const {Menu} = require('electron')
+  const electron = require('electron')
+  const app = electron.app
+
+  const template = [
+    {
+      label: 'Edit',
+      submenu: [
+        {
+          role: 'undo'
+        },
+        {
+          role: 'redo'
+        },
+        {
+          type: 'separator'
+        },
+        {
+          role: 'cut'
+        },
+        {
+          role: 'copy'
+        },
+        {
+          role: 'paste'
+        },
+        {
+          role: 'pasteandmatchstyle'
+        },
+        {
+          role: 'delete'
+        },
+        {
+          role: 'selectall'
+        }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        {
+          label: 'Reload',
+          accelerator: 'CmdOrCtrl+R',
+          click (item, focusedWindow) {
+            if (focusedWindow) focusedWindow.reload()
+          }
+        },
+        {
+          label: "foobar",
+          accelerator: "CmdOrCtrl+G",
+          click (item, focusedWindow) {
+            console.log("foobar menu clicked")
+          }
+        },
+        {
+          label: 'Toggle Developer Tools',
+          accelerator: process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
+          click (item, focusedWindow) {
+            if (focusedWindow) focusedWindow.webContents.toggleDevTools()
+          }
+        },
+        {
+          type: 'separator'
+        },
+        {
+          role: 'resetzoom'
+        },
+        {
+          role: 'zoomin'
+        },
+        {
+          role: 'zoomout'
+        },
+        {
+          type: 'separator'
+        },
+        {
+          role: 'togglefullscreen'
+        }
+      ]
+    },
+    {
+      role: 'window',
+      submenu: [
+        {
+          role: 'minimize'
+        },
+        {
+          role: 'close'
+        }
+      ]
+    },
+    {
+      role: 'help',
+      submenu: [
+        {
+          label: 'Learn More',
+          click () { require('electron').shell.openExternal('http://electron.atom.io') }
+        }
+      ]
+    }
+  ]
+
+  if (process.platform === 'darwin') {
+    const name = app.getName()
+    template.unshift({
+      label: name,
+      submenu: [
+        {
+          role: 'about'
+        },
+        {
+          type: 'separator'
+        },
+        {
+          role: 'services',
+          submenu: []
+        },
+        {
+          type: 'separator'
+        },
+        {
+          role: 'hide'
+        },
+        {
+          role: 'hideothers'
+        },
+        {
+          role: 'unhide'
+        },
+        {
+          type: 'separator'
+        },
+        {
+          role: 'quit'
+        }
+      ]
+    })
+    // Edit menu.
+    template[1].submenu.push(
+      {
+        type: 'separator'
+      },
+      {
+        label: 'Speech',
+        submenu: [
+          {
+            role: 'startspeaking'
+          },
+          {
+            role: 'stopspeaking'
+          }
+        ]
+      }
+    )
+    // Window menu.
+    template[3].submenu = [
+      {
+        label: 'Close',
+        accelerator: 'CmdOrCtrl+W',
+        role: 'close'
+      },
+      {
+        label: 'Minimize',
+        accelerator: 'CmdOrCtrl+M',
+        role: 'minimize'
+      },
+      {
+        label: 'Zoom',
+        role: 'zoom'
+      },
+      {
+        type: 'separator'
+      },
+      {
+        label: 'Bring All to Front',
+        role: 'front'
+      }
+    ]
+  }
+
+  const menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
 }
 
 // ipcMain.on('video-size', (event, width: number, height: number) => {
@@ -40,3 +239,12 @@ function createWindow() {
 // })
 
 app.on('ready', createWindow)
+
+app.on('ready', () => {
+  // Register a 'CommandOrControl+Y' shortcut listener.
+  globalShortcut.register('CommandOrControl+Y', () => {
+    // Do stuff when Y and either Command/Control is pressed.
+    console.log("foobar shortcut")
+  })
+})
+

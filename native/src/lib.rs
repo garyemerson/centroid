@@ -6,11 +6,8 @@ extern crate neon;
 extern crate rand;
 extern crate rayon;
 
-use neon::js::{JsNull, JsString, JsNumber, JsArray};
+use neon::js::{JsNull, JsNumber, JsArray};
 use neon::vm::{Call, JsResult};
-use std::thread;
-use rand::os::OsRng;
-use rand::Rng;
 use std::f64::{self, consts};
 use std::fmt;
 use rayon::prelude::*;
@@ -23,17 +20,6 @@ use std::hash::{Hash, Hasher};
 fn init(_call: Call) -> JsResult<JsNull> {
     env_logger::init().expect("could not initialize env_logger");
     Ok(JsNull::new())
-}
-
-fn hello(call: Call) -> JsResult<JsString> {
-    let child = thread::spawn(move || {
-        let mut r = OsRng::new().unwrap();
-        r.next_u32()
-    });
-    let res = child.join();
-
-    let scope = call.scope;
-    Ok(JsString::new(scope, &format!("Rust randomly generated {}", res.unwrap())).unwrap())
 }
 
 fn get_max(call: Call) -> JsResult<JsNumber> {
@@ -114,9 +100,10 @@ fn compute_centroid_xyz(points: &Vec<Point>) -> Result<Point, String> {
     let avg_x = points.iter().fold(0.0, |acc, ref p| acc + p.x) / (points.len() as f64);
     let avg_y = points.iter().fold(0.0, |acc, ref p| acc + p.y) / (points.len() as f64);
     let avg_z = points.iter().fold(0.0, |acc, ref p| acc + p.z) / (points.len() as f64);
+    println!("avg_x is {}; avg_y is {}; avg_z is {}", avg_x, avg_y, avg_z);
     let centroid = project(&Point { x: avg_x, y: avg_y, z: avg_z});
 
-    println!("centroid is {:?} with magnitude {}", centroid, mag(&centroid));
+    println!("projected centroid is {:?} with magnitude {}", centroid, mag(&centroid));
     Ok(centroid)
 }
 
@@ -201,7 +188,7 @@ fn compute_centroid_lat_lon(call: Call) -> JsResult<JsArray> {
 
     println!("xyz points are:");
     for p in &xyz_points {
-        println!("{:?}", p);
+        println!("{:?} {:?} ({})", to_lat_lon(p), p, mag(p));
     }
 
     let centroid: Result<Point, String> = compute_centroid_xyz(&xyz_points);
@@ -263,18 +250,8 @@ fn to_xyz(lat: f64, lon: f64) -> Point {
     Point { x: x, y: y, z: z }
 }
 
-fn get_rand_num(call: Call) -> JsResult<JsNumber> {
-    let max = call.arguments.require(call.scope, 0)?.check::<JsNumber>()?.value();
-    let mut r = OsRng::new().unwrap();
-    let num = r.gen_range(0, max as i64);
-    let scope = call.scope;
-    Ok(JsNumber::new(scope, num as f64))
-}
-
 register_module!(m, {
     m.export("init", init)?;
-    m.export("hello", hello)?;
-    m.export("getRandNum", get_rand_num)?;
     m.export("getMax", get_max)?;
     m.export("computeCentroid", compute_centroid_lat_lon)?;
     Ok(())
