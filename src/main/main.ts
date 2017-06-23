@@ -92,10 +92,11 @@ function setupMenu() {
           }
         },
         {
-          label: "foobar",
-          accelerator: "CmdOrCtrl+G",
+          label: "Toggle Search",
+          accelerator: "CmdOrCtrl+L",
           click (item, focusedWindow) {
             console.log("foobar menu clicked")
+            win.webContents.send('toggle-search', 'whoooooooh!')
           }
         },
         {

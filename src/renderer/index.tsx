@@ -113,6 +113,12 @@ class CityInput extends React.Component<any, any> {
       matches: this.allCities,
       matchIndices: [],
     }
+
+    Electron.ipcRenderer.on('toggle-search', (event, message) => {
+      console.log(message)  // Prints 'whoooooooh!'
+      // this.handleFocus()
+      this.focusTextInput()
+    })
   }
 
   textInput: any
@@ -255,8 +261,14 @@ class CityInput extends React.Component<any, any> {
     let ulHideScrollbarStyle = <style>{"#cityList::-webkit-scrollbar {width: 0px;}"}</style>
 
     return <div style={this.style}>
-      <input value={this.state.inputText} style={this.inputStyle} type="text" name="city"
-        placeholder="city"onFocus={this.handleFocus.bind(this)}
+      <style>
+        {
+          "#cityInput::-webkit-input-placeholder {font-style: italic; } #cityInput:-moz-placeholder {font-style: italic; } #cityInput::-moz-placeholder {font-style: italic; } #cityInput:-ms-input-placeholder {font-style: italic; }"
+        }
+      </style>
+      <input id="cityInput" value={this.state.inputText} style={this.inputStyle} type="text" name="city"
+        placeholder={"Search City " + (process.platform === 'darwin' ? '(cmd+L)' : '(ctrl+L)')}
+        onFocus={this.handleFocus.bind(this)}
         onBlur={this.handleBlur.bind(this)} onChange={this.handleChange.bind(this)}
         ref={(input) => { this.textInput = input; }}/>
       <ul id="cityList" style={this.ulStyle}>
