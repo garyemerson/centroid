@@ -21,7 +21,8 @@ function createWindow() {
   const indexUrl = url.format({
     pathname: path.join(__dirname, 'app', 'index.html'),
     protocol: 'file:',
-    slashes: true
+    slashes: true,
+    search: 'react_perf'
   })
   win.loadURL(indexUrl)
 
@@ -30,16 +31,6 @@ function createWindow() {
   })
 
   setupMenu()
-
-  // const menu = new Menu()
-  // console.log("menu is:")
-  // console.log(menu)
-  // menu.append(new MenuItem({
-  //   label: 'Print',
-  //   accelerator: 'CmdOrCtrl+P',
-  //   click: () => { console.log('time to print stuff') }
-  // }))
-  // Menu.setApplicationMenu(menu)
 }
 
 

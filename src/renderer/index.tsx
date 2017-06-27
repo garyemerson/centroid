@@ -93,6 +93,7 @@ class PreviewBar extends React.Component<any, any> {
 class CityInput extends React.Component<any, any> {
   constructor(props: any) {
     super(props)
+
     let options = {
       shouldSort: true,
       includeMatches: true,
@@ -101,75 +102,53 @@ class CityInput extends React.Component<any, any> {
       distance: 100,
       maxPatternLength: 32,
       minMatchCharLength: 1,
-      // keys: [
-      //   "title",
-      //   "author.firstName"
-      // ]
     };
+
     this.focusTextInput = this.focusTextInput.bind(this);
+    let allCities = fs.readFileSync("/Users/Garrett/workspaces/centroid/cities", "utf8").split("\n")
     this.state = {
       inputText: "",
-      fz: new Fuse(this.allCities, options),
-      matches: this.allCities,
+      matches: [],
       matchIndices: [],
+      allCities: allCities,
+      fz: new Fuse(allCities, options),
+      resultsVisible: false,
+      focused: false,
     }
 
     Electron.ipcRenderer.on('toggle-search', (event, message) => {
       console.log(message)  // Prints 'whoooooooh!'
-      // this.handleFocus()
       this.focusTextInput()
     })
   }
 
   textInput: any
-  allCities = fs.readFileSync("/Users/Garrett/workspaces/centroid/cities", "utf8").split("\n")
   style = {
-    width: "200px",
-    height: "20px",
+    // width: "200px",
+    // height: "20px",
     padding: "5px 10px",
   }
   inputStyle = {
-    width: "100%",
+    width: "20em",
+    fontSize: "16px",
   }
-  ulStyle = {
-    color: "#444",
-    backgroundColor: "#fff",
-    listStyleType: "none",
-    margin: 0,
-    padding: 0,
-    display: "none",
-    position: "relative",
-    overflowY: "scroll",
-    maxHeight: "250px",
-    zIndex: 1,
-    // opacity: 0.95,
-    boxShadow: "0 5px 15px 5px rgba(0, 0, 0, 0.125)",
-    borderRadius: "0 0 3px 3px",
-  }
-  liStyle = {
-    // borderLeft: "1px solid #444",
-    // borderRight: "1px solid #444",
-    borderBottom: "1px solid #444",
-    padding: "3px",
-    cursor: "pointer",
-  }
-  matchStyle = {
-    color: "#f2c12e",
-    // fontWeight: "bold",
+
+  focusTextInput() {
+    this.textInput.focus();
   }
 
   handleFocus() {
     console.log("focus")
-    this.ulStyle = { ...this.ulStyle }
-    this.ulStyle.display = "block"
-    render() // TODO: move styles to this.state so we don't have to do this
+    this.setState({
+      focused: true
+    })
   }
 
   handleBlur() {
     console.log("blur")
-    this.ulStyle = { ...this.ulStyle }
-    this.ulStyle.display = "none"
-    render() // TODO: move styles to this.state so we don't have to do this
+    this.setState({
+      focused: false,
+    })
   }
 
   handleChange(event: any) {
@@ -179,14 +158,17 @@ class CityInput extends React.Component<any, any> {
     });
 
     if (event.target.value !== "") {
+      let start = performance.now()
       let results = this.state.fz.search(event.target.value)
+      console.log("fz search took " + Math.floor(performance.now() - start) + " milliseconds.")
+
       let numToKeep = Math.min(results.length, 20)
       results = results.slice(0, numToKeep)
 
-      let newMatches = []
-      let newMatchIndices: any[][] = []
+      let newMatches: string[] = []
+      let newMatchIndices: number[][] = []
       for (let i = 0; i < results.length; i++) {
-        newMatches.push(this.allCities[results[i].item])
+        newMatches.push(this.state.allCities[results[i].item])
         newMatchIndices.push(results[i].matches[0])
       }
       
@@ -196,86 +178,118 @@ class CityInput extends React.Component<any, any> {
       })
     } else {
       this.setState({
-        matches: this.allCities,
+        matches: [],
         matchIndices: [],
       })
     }
   }
 
-  // handleMouseDown(e: any, city: any) {
-  //   e.preventDefault();
-  //   console.log("processing click with this as " + city)
-  //   this.props.addSelectedCity(city)
-  // }
+  render() {
+    let results: JSX.Element | null = null
+    if (this.state.focused && this.state.matches.length > 0) {
+      console.log("there are matches")
+      results = <SearchResults matches={this.state.matches} matchIndices={this.state.matchIndices} addSelectedCity={this.props.addSelectedCity} />
+    }
+    return (
+      <div style={this.style}>
+        <style>
+          {"#cityInput::-webkit-input-placeholder {font-style: italic; }" +
+           "#cityInput:-moz-placeholder {font-style: italic; }" +
+           "#cityInput::-moz-placeholder {font-style: italic; }" +
+           "#cityInput:-ms-input-placeholder {font-style: italic; }"}
+        </style>
+        <input id="cityInput" value={this.state.inputText} style={this.inputStyle} type="text" name="city"
+          placeholder={"Search City " + (process.platform === 'darwin' ? '(cmd+L)' : '(ctrl+L)')}
+          onFocus={this.handleFocus.bind(this)}
+          onBlur={this.handleBlur.bind(this)} onChange={this.handleChange.bind(this)}
+          ref={(input) => { this.textInput = input; }}/>
+        {results}
+      </div>
+    )
+  }
+}
 
-  getMouseDownHandler(city: string) {
-    return function(e: any) {
-      e.preventDefault();
-      console.log("processing click with this as " + city)
-      this.props.addSelectedCity(city)
-    }.bind(this)
+class SearchResults extends React.Component<any, any> {
+  constructor(props: any) {
+    super(props)
   }
 
-  focusTextInput() {
-    this.textInput.focus();
+  style = {
+    position: "relative",
+  }
+  ulStyle = {
+    color: "#444",
+    backgroundColor: "#fff",
+    listStyleType: "none",
+    margin: 0,
+    padding: 0,
+    // display: "none",
+    overflowY: "scroll",
+    maxHeight: "250px",
+    width: "20em",
+    zIndex: 1,
+    boxShadow: "0 5px 15px 5px rgba(0, 0, 0, 0.125)",
+    borderRadius: "0 0 3px 3px",
+  }
+  liStyle = {
+    borderBottom: "1px solid #444",
+    padding: "3px",
+    cursor: "pointer",
+  }
+  matchStyle = {
+    color: "#f2c12e",
   }
 
   getHighlightedSpans(i: number): JSX.Element[] {
-    let indices = this.state.matchIndices[i].indices
+    let indices = this.props.matchIndices[i].indices
     let spans: JSX.Element[] = []
     let curr = 0
     for (let j = 0; j < indices.length; j++) {
       if (curr !== indices[j][0]) {
-        let substr = this.state.matches[i].substring(curr, indices[j][0])
+        let substr = this.props.matches[i].substring(curr, indices[j][0])
         spans.push(<span>{substr}</span>)
         curr = indices[j][0]
       }
-      let substr = this.state.matches[i].substring(indices[j][0], indices[j][1] + 1)
+      let substr = this.props.matches[i].substring(indices[j][0], indices[j][1] + 1)
       spans.push(<span style={this.matchStyle}>{substr}</span>)
       curr = indices[j][1] + 1
     }
-    if (curr !== this.state.matches[i].length) {
-      let substr = this.state.matches[i].substring(curr, this.state.matches[i].length)
+    if (curr !== this.props.matches[i].length) {
+      let substr = this.props.matches[i].substring(curr, this.props.matches[i].length)
       spans.push(<span>{substr}</span>)
     }
 
     return spans
   }
 
+  getMouseDownHandler(city: string) {
+    return function(e: any) {
+      e.preventDefault();
+      this.props.addSelectedCity(city)
+    }.bind(this)
+  }
+
   render() {
-    let ulElems: JSX.Element[] = [];
-    for (let i = 0; i < this.state.matches.length; i++) {
-      let liContent: any
-      if (this.state.matchIndices.length !== 0) {
-        liContent = this.getHighlightedSpans(i)
-      } else {
-        liContent = this.state.matches[i]
-      }
-
+    let start = performance.now()
+    let liElems: JSX.Element[] = [];
+    console.log("there are " + this.props.matches.length + " matches")
+    for (let i = 0; i < this.props.matches.length; i++) {
+      let liContent = this.getHighlightedSpans(i)
       let hoverStyle = <style>{"#dropdownEntry:hover {background-color: #e0ecff}"}</style>
-      let liElem = <li id="dropdownEntry" onMouseDown={this.getMouseDownHandler(this.state.matches[i])} style={this.liStyle}>{hoverStyle}{liContent}</li>
+      let li = <li key={i} id="dropdownEntry" onMouseDown={this.getMouseDownHandler(this.props.matches[i])} style={this.liStyle}>{hoverStyle}{liContent}</li>
 
-      ulElems.push(liElem)
+      liElems.push(li)
     }
+    console.log("creating list took " + Math.floor(performance.now() - start) + " milliseconds.")
 
-    let ulHideScrollbarStyle = <style>{"#cityList::-webkit-scrollbar {width: 0px;}"}</style>
-
-    return <div style={this.style}>
-      <style>
-        {
-          "#cityInput::-webkit-input-placeholder {font-style: italic; } #cityInput:-moz-placeholder {font-style: italic; } #cityInput::-moz-placeholder {font-style: italic; } #cityInput:-ms-input-placeholder {font-style: italic; }"
-        }
-      </style>
-      <input id="cityInput" value={this.state.inputText} style={this.inputStyle} type="text" name="city"
-        placeholder={"Search City " + (process.platform === 'darwin' ? '(cmd+L)' : '(ctrl+L)')}
-        onFocus={this.handleFocus.bind(this)}
-        onBlur={this.handleBlur.bind(this)} onChange={this.handleChange.bind(this)}
-        ref={(input) => { this.textInput = input; }}/>
-      <ul id="cityList" style={this.ulStyle}>
-        {ulHideScrollbarStyle}
-        {ulElems}
-      </ul>
-    </div>
+    return (
+      <div style={this.style}>
+        <style>{"#cityList::-webkit-scrollbar {width: 0px;}"}</style>
+        <ul id="cityList" style={this.ulStyle}>
+          {liElems}
+        </ul>
+      </div>
+    )
   }
 }
 

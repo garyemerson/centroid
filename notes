@@ -1,5 +1,6 @@
 TODO
 ----
+* separate the CityInput from search results
 * write code to determine if selected cities span more than one hemisphere
 * write compute centroid rust code
 * button to remove selected city
