@@ -54,10 +54,10 @@ class PreviewBar extends React.Component<any, any> {
   }
 
   style = {
-    // width: "100%",
-    // height: "100px",
+    paddingTop: "20px",      
+    // height: "50px",
+    minHeight: "60px",
     background: "#efefef",
-    // display: "inline-block",
   };
 
   addSelectedCity(city: string) {
@@ -85,7 +85,9 @@ class PreviewBar extends React.Component<any, any> {
       <div>
         <CityInput addSelectedCity={this.addSelectedCity.bind(this)}/>
       </div>
-      {previews}
+      <div style={{marginTop: "50px"}}>
+        {previews}
+      </div>
     </div>
   }
 }
@@ -105,7 +107,7 @@ class CityInput extends React.Component<any, any> {
     };
 
     this.focusTextInput = this.focusTextInput.bind(this);
-    let allCities = fs.readFileSync("/Users/Garrett/workspaces/centroid/cities", "utf8").split("\n")
+    let allCities = fs.readFileSync("/Users/Garrett/Dropbox/Files/workspaces/centroid/cities", "utf8").split("\n")
     this.state = {
       inputText: "",
       matches: [],
@@ -124,13 +126,25 @@ class CityInput extends React.Component<any, any> {
 
   textInput: any
   style = {
-    // width: "200px",
-    // height: "20px",
-    padding: "5px 10px",
+    display: "table",
+    position: "absolute",
+    left: "calc(50% - 10em)",
+    margin: "0 auto 10px auto",
+    borderRadius: "3px",
   }
   inputStyle = {
     width: "20em",
+    fontFamily: "sans-serif",
     fontSize: "16px",
+    outline: "none",
+    position: "relative",
+    zIndex: 2,
+    padding: "5px 3px",
+    borderTop: "none",
+    borderLeft: "none",
+    borderRight: "none",
+    borderBottom: "3px solid #aaa",
+    // border: "1px solid #aaa",
   }
 
   focusTextInput() {
@@ -186,18 +200,28 @@ class CityInput extends React.Component<any, any> {
 
   render() {
     let results: JSX.Element | null = null
-    if (this.state.focused && this.state.matches.length > 0) {
-      console.log("there are matches")
-      results = <SearchResults matches={this.state.matches} matchIndices={this.state.matchIndices} addSelectedCity={this.props.addSelectedCity} />
+    let focusedStyle: string | null = null
+    let resultsStyle = "#cityInput { border-radius: 3px; }"
+    if (this.state.focused) {
+      focusedStyle = "#foobar { box-shadow: 0 0 40px 5px rgba(0, 0, 0, 0.125); }"
+      if (this.state.matches.length > 0) {
+        resultsStyle = "#cityInput { border-radius: 3px 3px 0 0; }"
+        console.log("there are matches")
+        results = <SearchResults matches={this.state.matches} matchIndices={this.state.matchIndices} addSelectedCity={this.props.addSelectedCity} />
+      }
     }
     return (
-      <div style={this.style}>
+      <div id="foobar" style={this.style}>
+        <style>
+          {focusedStyle}
+        </style>
         <style>
           {"#cityInput::-webkit-input-placeholder {font-style: italic; }" +
            "#cityInput:-moz-placeholder {font-style: italic; }" +
            "#cityInput::-moz-placeholder {font-style: italic; }" +
            "#cityInput:-ms-input-placeholder {font-style: italic; }"}
         </style>
+        <style>{resultsStyle}</style>
         <input id="cityInput" value={this.state.inputText} style={this.inputStyle} type="text" name="city"
           placeholder={"Search City " + (process.platform === 'darwin' ? '(cmd+L)' : '(ctrl+L)')}
           onFocus={this.handleFocus.bind(this)}
@@ -215,24 +239,24 @@ class SearchResults extends React.Component<any, any> {
   }
 
   style = {
-    position: "relative",
+    zIndex: 1,
+    borderRadius: "0 0 3px 3px",
   }
   ulStyle = {
+    borderRadius: "0 0 3px 3px",
     color: "#444",
-    backgroundColor: "#fff",
+    backgroundColor: "#f7f7f7",
     listStyleType: "none",
     margin: 0,
     padding: 0,
-    // display: "none",
     overflowY: "scroll",
-    maxHeight: "250px",
+    maxHeight: "240px",
     width: "20em",
     zIndex: 1,
-    boxShadow: "0 5px 15px 5px rgba(0, 0, 0, 0.125)",
-    borderRadius: "0 0 3px 3px",
   }
   liStyle = {
-    borderBottom: "1px solid #444",
+    fontFamily: "sans-serif",
+    borderBottom: "1px solid #ddd",
     padding: "3px",
     cursor: "pointer",
   }
@@ -275,7 +299,7 @@ class SearchResults extends React.Component<any, any> {
     console.log("there are " + this.props.matches.length + " matches")
     for (let i = 0; i < this.props.matches.length; i++) {
       let liContent = this.getHighlightedSpans(i)
-      let hoverStyle = <style>{"#dropdownEntry:hover {background-color: #e0ecff}"}</style>
+      let hoverStyle = <style>{"#dropdownEntry:hover {background-color: #eaeaea}"}</style>
       let li = <li key={i} id="dropdownEntry" onMouseDown={this.getMouseDownHandler(this.props.matches[i])} style={this.liStyle}>{hoverStyle}{liContent}</li>
 
       liElems.push(li)
@@ -300,7 +324,7 @@ class Preview extends React.Component<any, any> {
     let cityEscaped = this.props.city.replace(/, /g , ",").replace(/ /g, "+")
     console.log("city escaped is " + cityEscaped)
 
-    let key = fs.readFileSync('/Users/Garrett/workspaces/centroid/api_key').toString()
+    let key = fs.readFileSync('/Users/Garrett/Dropbox/Files/workspaces/centroid/api_key').toString()
     this.state = {
       imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ cityEscaped + 
         "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
@@ -412,7 +436,7 @@ class Centroid extends React.Component<any, any> {
   }
 
   compute() {
-    let key = fs.readFileSync('/Users/Garrett/workspaces/centroid/api_key').toString()
+    let key = fs.readFileSync('/Users/Garrett/Dropbox/Files/workspaces/centroid/api_key').toString()
     console.log("computing centroid")
 
     let centroid: number[] = native.computeCentroid(selectedCitiesLatLon)

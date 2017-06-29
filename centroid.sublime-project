@@ -3,12 +3,12 @@
 	[
 		{
 			"name": "build_proj",
-			"shell_cmd": "cd /Users/Garrett/workspaces/centroid && . env.sh && npm run install",
+			"shell_cmd": "cd /Users/Garrett/Dropbox/Files/workspaces/centroid && . env.sh && npm run install",
 			"syntax": "build_results.sublime-syntax"
 		},
 		{
 			"name": "run_proj",
-			"shell_cmd": "cd /Users/Garrett/workspaces/centroid && . env.sh && npm run install && npm start",
+			"shell_cmd": "cd /Users/Garrett/Dropbox/Files/workspaces/centroid && . env.sh && npm run install && npm start",
 			"syntax": "build_results.sublime-syntax"
 		}
 	],

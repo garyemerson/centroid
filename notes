@@ -1,8 +1,6 @@
 TODO
 ----
-* separate the CityInput from search results
-* write code to determine if selected cities span more than one hemisphere
-* write compute centroid rust code
+* add search icon in input bar to make more obvious that it's a search bar when unfocues and non-empty
 * button to remove selected city
 * search box focus shortcut (ctrl/cmd+L)
 * Immediate calculation instead of having to push button
