@@ -60,7 +60,7 @@ class PreviewBar extends React.Component<any, any> {
     background: "#efefef",
   };
 
-  addSelectedCity(city: string) {
+  addCity(city: string) {
     // let newSelectedCities = this.state.selectedCities.slice()
     // newSelectedCities.push(city)
     // this.setState({
@@ -75,24 +75,31 @@ class PreviewBar extends React.Component<any, any> {
     render()
   }
 
+  removeCity(index: number) {
+    selectedCities.splice(index, 1)
+    render()
+  }
+
   render () {
     let previews: JSX.Element[] = []
     for (let i = 0; i < selectedCities.length; i++) {
-      previews.push(<Preview city={selectedCities[i]}/>)
+      previews.push(<Preview city={selectedCities[i]} index={i} removeCity={this.removeCity.bind(this)}/>)
     }
 
-    return <div style={this.style}>
-      <div>
-        <CityInput addSelectedCity={this.addSelectedCity.bind(this)}/>
+    return (
+      <div style={this.style}>
+        <div>
+          <Search addCity={this.addCity.bind(this)}/>
+        </div>
+        <div style={{marginTop: "50px"}}>
+          {previews}
+        </div>
       </div>
-      <div style={{marginTop: "50px"}}>
-        {previews}
-      </div>
-    </div>
+     )
   }
 }
 
-class CityInput extends React.Component<any, any> {
+class Search extends React.Component<any, any> {
   constructor(props: any) {
     super(props)
 
@@ -116,6 +123,7 @@ class CityInput extends React.Component<any, any> {
       fz: new Fuse(allCities, options),
       resultsVisible: false,
       focused: false,
+      selectedResult: -1,
     }
 
     Electron.ipcRenderer.on('toggle-search', (event, message) => {
@@ -140,11 +148,7 @@ class CityInput extends React.Component<any, any> {
     position: "relative",
     zIndex: 2,
     padding: "5px 3px",
-    borderTop: "none",
-    borderLeft: "none",
-    borderRight: "none",
-    borderBottom: "3px solid #aaa",
-    // border: "1px solid #aaa",
+    border: "1px solid #ddd",
   }
 
   focusTextInput() {
@@ -152,14 +156,14 @@ class CityInput extends React.Component<any, any> {
   }
 
   handleFocus() {
-    console.log("focus")
+    // console.log("focus")
     this.setState({
       focused: true
     })
   }
 
   handleBlur() {
-    console.log("blur")
+    // console.log("blur")
     this.setState({
       focused: false,
     })
@@ -189,6 +193,7 @@ class CityInput extends React.Component<any, any> {
       this.setState({
         matches: newMatches,
         matchIndices: newMatchIndices,
+        selectedResult: 0,
       })
     } else {
       this.setState({
@@ -198,16 +203,44 @@ class CityInput extends React.Component<any, any> {
     }
   }
 
+  handleKeyPress(event: any) {
+    console.log("got keypress event:")
+    console.log(event)
+    console.log("key is %s", event.key)
+    console.log("keyCode is %s", event.keyCode)
+    switch (event.keyCode) {
+      case 27: // Escape
+        this.textInput.blur()
+        break;
+      case 38: // Up
+        if (this.state.selectedResult > 0) {
+          this.setState({
+            selectedResult: this.state.selectedResult - 1
+          })
+        }
+        break
+      case 40: // Down
+        if (this.state.selectedResult < this.state.matches.length - 1) {
+          this.setState({
+            selectedResult: this.state.selectedResult + 1
+          })
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
   render() {
     let results: JSX.Element | null = null
     let focusedStyle: string | null = null
-    let resultsStyle = "#cityInput { border-radius: 3px; }"
+    let resultsStyle = "#search { border-radius: 3px; }"
     if (this.state.focused) {
       focusedStyle = "#foobar { box-shadow: 0 0 40px 5px rgba(0, 0, 0, 0.125); }"
       if (this.state.matches.length > 0) {
-        resultsStyle = "#cityInput { border-radius: 3px 3px 0 0; }"
+        resultsStyle = "#search { border-radius: 3px 3px 0 0; }"
         console.log("there are matches")
-        results = <SearchResults matches={this.state.matches} matchIndices={this.state.matchIndices} addSelectedCity={this.props.addSelectedCity} />
+        results = <Results matches={this.state.matches} matchIndices={this.state.matchIndices} addCity={this.props.addCity} selectedIndex={this.state.selectedResult}/>
       }
     }
     return (
@@ -216,31 +249,33 @@ class CityInput extends React.Component<any, any> {
           {focusedStyle}
         </style>
         <style>
-          {"#cityInput::-webkit-input-placeholder {font-style: italic; }" +
-           "#cityInput:-moz-placeholder {font-style: italic; }" +
-           "#cityInput::-moz-placeholder {font-style: italic; }" +
-           "#cityInput:-ms-input-placeholder {font-style: italic; }"}
+          {"#search::-webkit-input-placeholder {font-style: italic; }" +
+           "#search:-moz-placeholder {font-style: italic; }" +
+           "#search::-moz-placeholder {font-style: italic; }" +
+           "#search:-ms-input-placeholder {font-style: italic; }"}
         </style>
         <style>{resultsStyle}</style>
-        <input id="cityInput" value={this.state.inputText} style={this.inputStyle} type="text" name="city"
+        <input id="search" value={this.state.inputText} style={this.inputStyle} type="text" name="city"
           placeholder={"Search City " + (process.platform === 'darwin' ? '(cmd+L)' : '(ctrl+L)')}
           onFocus={this.handleFocus.bind(this)}
           onBlur={this.handleBlur.bind(this)} onChange={this.handleChange.bind(this)}
-          ref={(input) => { this.textInput = input; }}/>
+          ref={(input) => { this.textInput = input; }} onKeyDown={this.handleKeyPress.bind(this)}/>
         {results}
       </div>
     )
   }
 }
 
-class SearchResults extends React.Component<any, any> {
+class Results extends React.Component<any, any> {
   constructor(props: any) {
     super(props)
   }
 
   style = {
-    zIndex: 1,
     borderRadius: "0 0 3px 3px",
+    border: "1px solid #ddd",
+    position: "relative",
+    zIndex: 2,
   }
   ulStyle = {
     borderRadius: "0 0 3px 3px",
@@ -251,14 +286,17 @@ class SearchResults extends React.Component<any, any> {
     padding: 0,
     overflowY: "scroll",
     maxHeight: "240px",
-    width: "20em",
-    zIndex: 1,
+    width: "318px",
+    position: "relative",
+    zIndex: 2,
   }
   liStyle = {
     fontFamily: "sans-serif",
     borderBottom: "1px solid #ddd",
     padding: "3px",
     cursor: "pointer",
+    position: "relative",
+    zIndex: 2,
   }
   matchStyle = {
     color: "#f2c12e",
@@ -289,7 +327,7 @@ class SearchResults extends React.Component<any, any> {
   getMouseDownHandler(city: string) {
     return function(e: any) {
       e.preventDefault();
-      this.props.addSelectedCity(city)
+      this.props.addCity(city)
     }.bind(this)
   }
 
@@ -299,8 +337,13 @@ class SearchResults extends React.Component<any, any> {
     console.log("there are " + this.props.matches.length + " matches")
     for (let i = 0; i < this.props.matches.length; i++) {
       let liContent = this.getHighlightedSpans(i)
-      let hoverStyle = <style>{"#dropdownEntry:hover {background-color: #eaeaea}"}</style>
-      let li = <li key={i} id="dropdownEntry" onMouseDown={this.getMouseDownHandler(this.props.matches[i])} style={this.liStyle}>{hoverStyle}{liContent}</li>
+      let hoverStyle = <style>{"#dropdownEntry" + i + ":hover {background-color: #eaeaea}"}</style>
+      let selectedStyle: JSX.Element | null = null
+      console.log("i is " + i + " and selectedIndex is " + this.props.selectedIndex)
+      if (i === this.props.selectedIndex) {
+        selectedStyle = <style>{"#dropdownEntry" + i + "{background-color: #eaeaea}"}</style>
+      }
+      let li = <li key={i} id={"dropdownEntry" + i} onMouseDown={this.getMouseDownHandler(this.props.matches[i])} style={this.liStyle}>{selectedStyle}{hoverStyle}{liContent}</li>
 
       liElems.push(li)
     }
@@ -339,7 +382,7 @@ class Preview extends React.Component<any, any> {
     width: "100%",
     height: "180px",
     background: "#aacbff",
-    border: "1px solid black",
+    // border: "1px solid black",
     // verticalAlign: "middle",
   }
   divStyle = {
@@ -389,12 +432,23 @@ class Preview extends React.Component<any, any> {
     console.log("making request with path " + requestPath)
   }
 
+  getRemoveCityHandler() {
+    return function() {
+      this.props.removeCity(this.props.index)
+    }.bind(this)
+  }
+
   render () {
-    return <div style={this.divStyle}>
-      <p>{this.props.city}</p>
-      <p>{this.state.latLon}</p>
-      <img style={this.imgStyle} src={this.state.imgUrl}/>
-    </div>
+    return (
+      <div style={this.divStyle}>
+        <p>{this.props.city}</p>
+        <p>{this.state.latLon}</p>
+        <div style={{border: "1px solid blue"}}>
+          <button style={{position: "absolute", zIndex: 1, fontWeight: "bold", margin: "3px 3px 0 271px",}} onClick={this.getRemoveCityHandler()}>✕</button>
+          <img style={this.imgStyle} src={this.state.imgUrl}/>
+        </div>
+      </div>
+    )
   }
 }
 
