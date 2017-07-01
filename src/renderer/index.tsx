@@ -41,6 +41,7 @@ function printLatLons(latLons: number[][]) {
 
 let selectedCities: string[] = []
 let selectedCitiesLatLon: number[][] = []
+let selectedResult: any
 
 // Get access to dialog boxes in our main UI process.
 const remote = Electron.remote
@@ -133,6 +134,7 @@ class Search extends React.Component<any, any> {
   }
 
   textInput: any
+  resultList: any
   style = {
     display: "table",
     position: "absolute",
@@ -210,9 +212,11 @@ class Search extends React.Component<any, any> {
     console.log("keyCode is %s", event.keyCode)
     switch (event.keyCode) {
       case 27: // Escape
+        event.preventDefault();
         this.textInput.blur()
         break;
       case 38: // Up
+        event.preventDefault();
         if (this.state.selectedResult > 0) {
           this.setState({
             selectedResult: this.state.selectedResult - 1
@@ -220,7 +224,9 @@ class Search extends React.Component<any, any> {
         }
         break
       case 40: // Down
+        event.preventDefault();
         if (this.state.selectedResult < this.state.matches.length - 1) {
+          selectedResult.scrollIntoView()
           this.setState({
             selectedResult: this.state.selectedResult + 1
           })
@@ -240,7 +246,8 @@ class Search extends React.Component<any, any> {
       if (this.state.matches.length > 0) {
         resultsStyle = "#search { border-radius: 3px 3px 0 0; }"
         console.log("there are matches")
-        results = <Results matches={this.state.matches} matchIndices={this.state.matchIndices} addCity={this.props.addCity} selectedIndex={this.state.selectedResult}/>
+        results = <Results ref={(results) => this.resultList = results} matches={this.state.matches} matchIndices={this.state.matchIndices}
+          addCity={this.props.addCity} selectedIndex={this.state.selectedResult} scrollResultIntoView={this.scrollResultIntoView}/>
       }
     }
     return (
@@ -340,10 +347,16 @@ class Results extends React.Component<any, any> {
       let hoverStyle = <style>{"#dropdownEntry" + i + ":hover {background-color: #eaeaea}"}</style>
       let selectedStyle: JSX.Element | null = null
       console.log("i is " + i + " and selectedIndex is " + this.props.selectedIndex)
+      let li: JSX.Element
       if (i === this.props.selectedIndex) {
         selectedStyle = <style>{"#dropdownEntry" + i + "{background-color: #eaeaea}"}</style>
+        li = <li ref={(result) => selectedResult = result} key={i} id={"dropdownEntry" + i}
+          onMouseDown={this.getMouseDownHandler(this.props.matches[i])} style={this.liStyle}>
+          {selectedStyle}{hoverStyle}{liContent}</li>
+      } else {
+        li = <li key={i} id={"dropdownEntry" + i} onMouseDown={this.getMouseDownHandler(this.props.matches[i])}
+            style={this.liStyle}>{hoverStyle}{liContent}</li>
       }
-      let li = <li key={i} id={"dropdownEntry" + i} onMouseDown={this.getMouseDownHandler(this.props.matches[i])} style={this.liStyle}>{selectedStyle}{hoverStyle}{liContent}</li>
 
       liElems.push(li)
     }
