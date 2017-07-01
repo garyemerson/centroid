@@ -1,7 +1,12 @@
 TODO
 ----
-* Immediate calculation instead of having to push button
+* Mimic chrome cmd+l more closely
+    * when shorcut used and search already focused, highlight contents
 * Allow arrow keys to be used in dropdown selection
+* Prevent dropdown from disappearing when OS app loses focus
+* Immediate calculation instead of having to push button
+    * includes when cities removed
+* Possible remove button bug: clicking removes a different city then what the button is attached to
 * Improve centroid caclulation. Ex of bad calculation:
     (40.7127837, -74.0059413) New York (NY), United States
     (37.566535, 126.9779692) Seoul, South Korea
@@ -16,13 +21,3 @@ Useful Info
 * http://members.tripod.com/~Paul_Kirby/vector/VLintro.html#magniofvectors
 * https://github.com/VictorDavis/GeoConvexHull
 * http://rstudio-pubs-static.s3.amazonaws.com/27121_a22e51b47c544980bad594d5e0bb2d04.html
-
-Idea
-----
-1) Select 3 popular cities around the world
-    * Live query from google maps api
-    * Each selection add small maps preview box
-2) Press "compute centroid" button
-    * Pass coordinates to rust code for computation
-3) Draw big centroid illustration below all preview boxes
-    * Receive results from rust

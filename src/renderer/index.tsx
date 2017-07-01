@@ -41,7 +41,8 @@ function printLatLons(latLons: number[][]) {
 
 let selectedCities: string[] = []
 let selectedCitiesLatLon: number[][] = []
-let selectedResult: any
+let resultList: any
+let results = {}
 
 // Get access to dialog boxes in our main UI process.
 const remote = Electron.remote
@@ -78,6 +79,7 @@ class PreviewBar extends React.Component<any, any> {
 
   removeCity(index: number) {
     selectedCities.splice(index, 1)
+    selectedCitiesLatLon.splice(index, 1)
     render()
   }
 
@@ -211,29 +213,43 @@ class Search extends React.Component<any, any> {
     console.log("key is %s", event.key)
     console.log("keyCode is %s", event.keyCode)
     switch (event.keyCode) {
+      case 13: // Enter
+        event.preventDefault()
+        this.props.addCity(this.state.matches[this.state.selectedResult])
+        // this.textInput.blur()
+        break
       case 27: // Escape
-        event.preventDefault();
+        event.preventDefault()
         this.textInput.blur()
-        break;
+        break
       case 38: // Up
-        event.preventDefault();
+        event.preventDefault()
         if (this.state.selectedResult > 0) {
+          console.log("result offsetTop is " + results[this.state.selectedResult - 1].offsetTop)
+          console.log("resultList scrollTop is " + resultList.scrollTop)
+
+          if (results[this.state.selectedResult - 1].offsetTop < resultList.scrollTop) {
+            results[this.state.selectedResult - 1].scrollIntoView()
+          }
+
           this.setState({
             selectedResult: this.state.selectedResult - 1
           })
         }
         break
       case 40: // Down
-        event.preventDefault();
+        event.preventDefault()
         if (this.state.selectedResult < this.state.matches.length - 1) {
-          selectedResult.scrollIntoView()
+          console.log("result offsetTop is " + results[this.state.selectedResult + 1].offsetTop)
+          console.log("resultList scrollTop is " + resultList.scrollTop)
+          results[this.state.selectedResult + 1].scrollIntoView(false)
           this.setState({
             selectedResult: this.state.selectedResult + 1
           })
         }
-        break;
+        break
       default:
-        break;
+        break
     }
   }
 
@@ -246,8 +262,8 @@ class Search extends React.Component<any, any> {
       if (this.state.matches.length > 0) {
         resultsStyle = "#search { border-radius: 3px 3px 0 0; }"
         console.log("there are matches")
-        results = <Results ref={(results) => this.resultList = results} matches={this.state.matches} matchIndices={this.state.matchIndices}
-          addCity={this.props.addCity} selectedIndex={this.state.selectedResult} scrollResultIntoView={this.scrollResultIntoView}/>
+        results = <Results ref={(results) => this.resultList = results} matches={this.state.matches}
+          matchIndices={this.state.matchIndices} addCity={this.props.addCity} selectedIndex={this.state.selectedResult}/>
       }
     }
     return (
@@ -346,16 +362,15 @@ class Results extends React.Component<any, any> {
       let liContent = this.getHighlightedSpans(i)
       let hoverStyle = <style>{"#dropdownEntry" + i + ":hover {background-color: #eaeaea}"}</style>
       let selectedStyle: JSX.Element | null = null
-      console.log("i is " + i + " and selectedIndex is " + this.props.selectedIndex)
       let li: JSX.Element
       if (i === this.props.selectedIndex) {
         selectedStyle = <style>{"#dropdownEntry" + i + "{background-color: #eaeaea}"}</style>
-        li = <li ref={(result) => selectedResult = result} key={i} id={"dropdownEntry" + i}
+        li = <li ref={(result) => results[i] = result} key={i} id={"dropdownEntry" + i}
           onMouseDown={this.getMouseDownHandler(this.props.matches[i])} style={this.liStyle}>
           {selectedStyle}{hoverStyle}{liContent}</li>
       } else {
-        li = <li key={i} id={"dropdownEntry" + i} onMouseDown={this.getMouseDownHandler(this.props.matches[i])}
-            style={this.liStyle}>{hoverStyle}{liContent}</li>
+        li = <li ref={(result) => results[i] = result} key={i} id={"dropdownEntry" + i}
+          onMouseDown={this.getMouseDownHandler(this.props.matches[i])} style={this.liStyle}>{hoverStyle}{liContent}</li>
       }
 
       liElems.push(li)
@@ -365,7 +380,7 @@ class Results extends React.Component<any, any> {
     return (
       <div style={this.style}>
         <style>{"#cityList::-webkit-scrollbar {width: 0px;}"}</style>
-        <ul id="cityList" style={this.ulStyle}>
+        <ul ref={(ul) => resultList = ul} id="cityList" style={this.ulStyle}>
           {liElems}
         </ul>
       </div>
@@ -447,6 +462,7 @@ class Preview extends React.Component<any, any> {
 
   getRemoveCityHandler() {
     return function() {
+      console.log("removing city with index " + this.props.index)
       this.props.removeCity(this.props.index)
     }.bind(this)
   }
