@@ -6,7 +6,6 @@ TODO
 * Prevent dropdown from disappearing when OS app loses focus
 * Immediate calculation instead of having to push button
     * includes when cities removed
-* Possible remove button bug: clicking removes a different city then what the button is attached to
 * Improve centroid caclulation. Ex of bad calculation:
     (40.7127837, -74.0059413) New York (NY), United States
     (37.566535, 126.9779692) Seoul, South Korea

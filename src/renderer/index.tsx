@@ -43,6 +43,7 @@ let selectedCities: string[] = []
 let selectedCitiesLatLon: number[][] = []
 let resultList: any
 let results = {}
+let colorFlag = false
 
 // Get access to dialog boxes in our main UI process.
 const remote = Electron.remote
@@ -50,9 +51,6 @@ const remote = Electron.remote
 class PreviewBar extends React.Component<any, any> {
   constructor() {
     super()
-    // this.state = {
-    //   selectedCities: [],
-    // }
   }
 
   style = {
@@ -86,7 +84,7 @@ class PreviewBar extends React.Component<any, any> {
   render () {
     let previews: JSX.Element[] = []
     for (let i = 0; i < selectedCities.length; i++) {
-      previews.push(<Preview city={selectedCities[i]} index={i} removeCity={this.removeCity.bind(this)}/>)
+      previews.push(<Preview key={i} city={selectedCities[i]} index={i} removeCity={this.removeCity.bind(this)}/>)
     }
 
     return (
@@ -157,6 +155,9 @@ class Search extends React.Component<any, any> {
 
   focusTextInput() {
     this.textInput.focus();
+    if (this.state.inputText !== "") {
+      this.textInput.select()
+    }
   }
 
   handleFocus() {
@@ -216,7 +217,7 @@ class Search extends React.Component<any, any> {
       case 13: // Enter
         event.preventDefault()
         this.props.addCity(this.state.matches[this.state.selectedResult])
-        // this.textInput.blur()
+        this.textInput.blur()
         break
       case 27: // Escape
         event.preventDefault()
@@ -402,6 +403,8 @@ class Preview extends React.Component<any, any> {
         "&markers=color:red%7C" + cityEscaped + 
         "&key=" + key,
       latLon: " ",
+      key: key,
+      city: this.props.city,
     }
     this.getLatLon(cityEscaped, key)
   }
@@ -465,6 +468,18 @@ class Preview extends React.Component<any, any> {
       console.log("removing city with index " + this.props.index)
       this.props.removeCity(this.props.index)
     }.bind(this)
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.city !== this.state.city) {
+      let cityEscaped = nextProps.city.replace(/, /g , ",").replace(/ /g, "+")
+      this.setState({
+        imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ cityEscaped + 
+          "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
+          "&markers=color:red%7C" + cityEscaped + 
+          "&key=" + this.state.key,
+      })
+    }
   }
 
   render () {

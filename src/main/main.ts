@@ -233,6 +233,10 @@ function setupMenu() {
 app.on('ready', createWindow)
 
 app.on('ready', () => {
+  BrowserWindow.addDevToolsExtension("/Users/Garrett/Library/Application Support/Google/Chrome/Default/Extensions/fmkadmapgofadopljbjfkapdkoienihi/2.4.0_0")
+})
+
+app.on('ready', () => {
   // Register a 'CommandOrControl+Y' shortcut listener.
   globalShortcut.register('CommandOrControl+Y', () => {
     // Do stuff when Y and either Command/Control is pressed.
