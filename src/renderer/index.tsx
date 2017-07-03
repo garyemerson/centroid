@@ -9,27 +9,6 @@ import Fuse = require('fuse.js')
 import https = require('https')
 
 native.init()
-// let latLons = [[14.59, 120.98], [40.71, -7.00], [19.43, -9.13]]
-// let latLons = [[80, 120.98], [10, -7.00], [50, -9.13]]
-// let latLons = [[0, 120.98], [0, -7.00], [0, -9.13]]
-// let latLons = [[90, 120.98], [0, -90], [0, -180]]
-// let latLons = [[90, 120.98], [90, -90], [90, -180], [90, -22]]
-// let latLons = [[90, 0], [0, 0], [0, 90], [0, 180], [0, -90], [-90, 0]]
-// let latLons = [[90, 0], [0, 0], [0, 90], [0, 180], [0, -90]]
-// let latLons = [[1, 0], [-1, 90], [1, 180], [1, -90]]
-
-// let latLons: number[][] = []
-// for (let i = 0; i < 5; i++) {
-//   let lat = (Math.random() * 180) - 90
-//   let lon = (Math.random() * 360) - 180
-//   latLons.push([lat, lon])
-// }
-
-// let start = performance.now()
-// console.log("the centroid of latLons is " + (native.computeCentroid(latLons)))
-// let end = performance.now()
-// console.log("oneHemisphere took " + (end - start) + " milliseconds.")
-
 
 function printLatLons(latLons: number[][]) {
   let str = ""
@@ -53,11 +32,11 @@ class PreviewBar extends React.Component<any, any> {
     super()
   }
 
-  style = {
+  style: React.CSSProperties = {
     paddingTop: "20px",      
-    // height: "50px",
-    minHeight: "60px",
+    height: "33.33vh",
     background: "#efefef",
+    overflowX: "scroll",
   };
 
   addCity(city: string) {
@@ -67,11 +46,8 @@ class PreviewBar extends React.Component<any, any> {
     //   selectedCities: newSelectedCities,
     // })
 
-    selectedCities.push(city)
     console.log("adding " + city)
-    console.log("selectedCities is:")
-    // console.log(newSelectedCities)
-    console.log(selectedCities)
+    selectedCities.push(city)
     render()
   }
 
@@ -92,11 +68,123 @@ class PreviewBar extends React.Component<any, any> {
         <div>
           <Search addCity={this.addCity.bind(this)}/>
         </div>
-        <div style={{marginTop: "50px"}}>
+        <div style={{whiteSpace: "nowrap", marginTop: "39px", textAlign: "center",}}>
           {previews}
         </div>
       </div>
      )
+  }
+}
+
+class Preview extends React.Component<any, any> {
+  constructor(props: any) {
+    super(props)
+    let cityEscaped = this.props.city.replace(/, /g , ",").replace(/ /g, "+")
+
+    let key = fs.readFileSync('/Users/Garrett/Dropbox/Files/workspaces/centroid/api_key').toString()
+    this.state = {
+      imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ cityEscaped + 
+        "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
+        "&markers=color:red%7C" + cityEscaped + 
+        "&key=" + key,
+      latLon: "-",
+      key: key,
+      city: this.props.city,
+    }
+    this.getLatLon(cityEscaped, key)
+  }
+
+  divStyle: React.CSSProperties = {
+    height: "20vh",
+    display: "inline-block",
+    margin: "0 10px 10px 10px",
+    textAlign: "center",
+    fontFamily: "monospace",
+    fontSize: "1.5vh",
+  }
+  imgStyle: React.CSSProperties = {
+    height: "15vh",
+    width: "25vh",
+    background: "#aacbff",
+  }
+  buttonStyle: React.CSSProperties = {
+    position: "relative",
+    top: "15px",
+    zIndex: 1,
+    overflow: "visible",
+    marginTop: "-24px",
+    float: "right",
+    fontWeight: "bold",
+  }
+
+  getLatLon(city: string, apiKey: string) {
+    let requestPath = "/maps/api/geocode/json?address=" + city + "&key=" + apiKey
+
+    const options = {
+      hostname: 'maps.googleapis.com',
+      port: 443,
+      path: requestPath,
+      method: 'GET',
+    };
+
+    const req = https.request(options, (res) => {
+      let fullResponse = ""
+      console.log(`STATUS: ${res.statusCode}`);
+      res.setEncoding('utf8');
+      res.on('data', (chunk) => {
+        fullResponse += chunk
+      });
+      res.on('end', () => {
+        let obj = JSON.parse(fullResponse)
+        let loc = obj.results[0].geometry.location
+        console.log(loc)
+        selectedCitiesLatLon.push([loc.lat, loc.lng])
+        console.log("selectedCitiesLatLon is:")
+        console.log(selectedCitiesLatLon)
+        this.setState({
+          latLon: "(" + loc.lat + ", " + loc.lng + ")"
+        })
+      });
+    });
+
+    req.on('error', (e) => {
+      console.error(`problem with request: ${e.message}`);
+    });
+
+    req.end();
+    console.log("making request with path " + requestPath)
+  }
+
+  getRemoveCityHandler() {
+    return function() {
+      console.log("removing city with index " + this.props.index)
+      this.props.removeCity(this.props.index)
+    }.bind(this)
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.city !== this.state.city) {
+      let cityEscaped = nextProps.city.replace(/, /g , ",").replace(/ /g, "+")
+      this.setState({
+        imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ cityEscaped + 
+          "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
+          "&markers=color:red%7C" + cityEscaped + 
+          "&key=" + this.state.key,
+      })
+    }
+  }
+
+  render () {
+    return (
+      <div style={this.divStyle}>
+        <p style={{marginBottom: "0"}}>{this.props.city}</p>
+        <p style={{marginTop: "0", marginBottom: "2px",}}>{this.state.latLon}</p>
+        <div style={{display: "table", border: "1px dotted blue"}}>
+          <button style={this.buttonStyle} onClick={this.getRemoveCityHandler()}>✕</button>
+          <img style={this.imgStyle} src={this.state.imgUrl}/>
+        </div>
+      </div>
+    )
   }
 }
 
@@ -125,6 +213,8 @@ class Search extends React.Component<any, any> {
       resultsVisible: false,
       focused: false,
       selectedResult: -1,
+      scrollTop: 0,
+      needsScroll: false,
     }
 
     Electron.ipcRenderer.on('toggle-search', (event, message) => {
@@ -163,8 +253,23 @@ class Search extends React.Component<any, any> {
   handleFocus() {
     // console.log("focus")
     this.setState({
-      focused: true
+      focused: true,
+      needsScroll: true,
     })
+  }
+
+  componentDidUpdate() {
+    if (this.state.needsScroll) {
+      if (resultList !== undefined && resultList !== null) {
+        console.log("restoring scrollTop to " + this.state.scrollTop)
+        resultList.scrollTop = this.state.scrollTop
+      } else {
+        console.log("bad resultList: " + resultList)
+      }
+      this.setState({
+        needsScroll: false
+      })
+    }
   }
 
   handleBlur() {
@@ -199,6 +304,8 @@ class Search extends React.Component<any, any> {
         matches: newMatches,
         matchIndices: newMatchIndices,
         selectedResult: 0,
+        scrollTop: 0,
+        needsScroll: false,
       })
     } else {
       this.setState({
@@ -209,10 +316,6 @@ class Search extends React.Component<any, any> {
   }
 
   handleKeyPress(event: any) {
-    console.log("got keypress event:")
-    console.log(event)
-    console.log("key is %s", event.key)
-    console.log("keyCode is %s", event.keyCode)
     switch (event.keyCode) {
       case 13: // Enter
         event.preventDefault()
@@ -230,11 +333,15 @@ class Search extends React.Component<any, any> {
           console.log("resultList scrollTop is " + resultList.scrollTop)
 
           if (results[this.state.selectedResult - 1].offsetTop < resultList.scrollTop) {
+            console.log("resultList scrollTop before: " + resultList.scrollTop)
             results[this.state.selectedResult - 1].scrollIntoView()
+            console.log("resultList scrollTop after: " + resultList.scrollTop)
+            console.log("resultList height is " + resultList.offsetHeight)
           }
 
           this.setState({
-            selectedResult: this.state.selectedResult - 1
+            selectedResult: this.state.selectedResult - 1,
+            scrollTop: resultList.scrollTop,
           })
         }
         break
@@ -243,9 +350,18 @@ class Search extends React.Component<any, any> {
         if (this.state.selectedResult < this.state.matches.length - 1) {
           console.log("result offsetTop is " + results[this.state.selectedResult + 1].offsetTop)
           console.log("resultList scrollTop is " + resultList.scrollTop)
-          results[this.state.selectedResult + 1].scrollIntoView(false)
+          let resultBottom = results[this.state.selectedResult + 1].offsetTop + results[this.state.selectedResult + 1].offsetHeight
+          let resultListBottom = resultList.scrollTop + resultList.offsetHeight
+          console.log("result bottom is " + resultBottom)
+          console.log("resultList bottom is " + resultListBottom)
+          if (resultBottom > resultListBottom) {
+            console.log("resultList scrollTop before: " + resultList.scrollTop)
+            results[this.state.selectedResult + 1].scrollIntoView(false)
+            console.log("resultList scrollTop after: " + resultList.scrollTop)
+          }
           this.setState({
-            selectedResult: this.state.selectedResult + 1
+            selectedResult: this.state.selectedResult + 1,
+            scrollTop: resultList.scrollTop,
           })
         }
         break
@@ -389,113 +505,6 @@ class Results extends React.Component<any, any> {
   }
 }
 
-class Preview extends React.Component<any, any> {
-  constructor(props: any) {
-    super(props)
-    console.log("city is " + this.props.city)
-    let cityEscaped = this.props.city.replace(/, /g , ",").replace(/ /g, "+")
-    console.log("city escaped is " + cityEscaped)
-
-    let key = fs.readFileSync('/Users/Garrett/Dropbox/Files/workspaces/centroid/api_key').toString()
-    this.state = {
-      imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ cityEscaped + 
-        "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
-        "&markers=color:red%7C" + cityEscaped + 
-        "&key=" + key,
-      latLon: " ",
-      key: key,
-      city: this.props.city,
-    }
-    this.getLatLon(cityEscaped, key)
-  }
-
-  imgStyle = {
-    width: "100%",
-    height: "180px",
-    background: "#aacbff",
-    // border: "1px solid black",
-    // verticalAlign: "middle",
-  }
-  divStyle = {
-    width: "300px",
-    display: "inline-block",
-    margin: "0 10px 10px 10px",
-    // lineHeight: "50px",
-    textAlign: "center",
-    fontFamily: "monospace",
-  }
-
-  getLatLon(city: string, apiKey: string) {
-    let requestPath = "/maps/api/geocode/json?address=" + city + "&key=" + apiKey
-
-    const options = {
-      hostname: 'maps.googleapis.com',
-      port: 443,
-      path: requestPath,
-      method: 'GET',
-    };
-
-    const req = https.request(options, (res) => {
-      let fullResponse = ""
-      console.log(`STATUS: ${res.statusCode}`);
-      res.setEncoding('utf8');
-      res.on('data', (chunk) => {
-        fullResponse += chunk
-      });
-      res.on('end', () => {
-        let obj = JSON.parse(fullResponse)
-        let loc = obj.results[0].geometry.location
-        console.log(loc)
-        selectedCitiesLatLon.push([loc.lat, loc.lng])
-        console.log("selectedCitiesLatLon is:")
-        console.log(selectedCitiesLatLon)
-        this.setState({
-          latLon: "(" + loc.lat + ", " + loc.lng + ")"
-        })
-      });
-    });
-
-    req.on('error', (e) => {
-      console.error(`problem with request: ${e.message}`);
-    });
-
-    req.end();
-    console.log("making request with path " + requestPath)
-  }
-
-  getRemoveCityHandler() {
-    return function() {
-      console.log("removing city with index " + this.props.index)
-      this.props.removeCity(this.props.index)
-    }.bind(this)
-  }
-
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.city !== this.state.city) {
-      let cityEscaped = nextProps.city.replace(/, /g , ",").replace(/ /g, "+")
-      this.setState({
-        imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ cityEscaped + 
-          "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
-          "&markers=color:red%7C" + cityEscaped + 
-          "&key=" + this.state.key,
-      })
-    }
-  }
-
-  render () {
-    return (
-      <div style={this.divStyle}>
-        <p>{this.props.city}</p>
-        <p>{this.state.latLon}</p>
-        <div style={{border: "1px solid blue"}}>
-          <button style={{position: "absolute", zIndex: 1, fontWeight: "bold", margin: "3px 3px 0 271px",}} onClick={this.getRemoveCityHandler()}>✕</button>
-          <img style={this.imgStyle} src={this.state.imgUrl}/>
-        </div>
-      </div>
-    )
-  }
-}
-
 class Centroid extends React.Component<any, any> {
   constructor() {
     super()
@@ -514,9 +523,8 @@ class Centroid extends React.Component<any, any> {
     backgroundColor: "#fff",
   }
   imgStyle = {
-    // width: "100%",
-    width: "640px",
-    height: "400px",
+    height: "50vh",
+    width: "80vh",
     background: "#aacbff",
     border: "1px solid black",
     margin: "0 auto",
@@ -526,8 +534,6 @@ class Centroid extends React.Component<any, any> {
   divStyle = {
     width: "640px",
     display: "block",
-    // margin: "0 10px 10px 10px",
-    // lineHeight: "50px",
     textAlign: "center",
     fontFamily: "monospace",
     margin: "0 auto",
