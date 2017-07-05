@@ -3,10 +3,14 @@ import ReactDOM = require('react-dom')
 import Electron = require('electron')
 import { format as urlFormat } from 'url'
 import objectAssign = require("object-assign")
-import native = require('../../native');
+import native = require('../../native')
 import fs = require('fs')
 import Fuse = require('fuse.js')
 import https = require('https')
+import { Provider, connect } from 'react-redux'
+import { createStore, applyMiddleware, compose } from 'redux'
+// import { logger } from 'redux-logger'
+import logger = require("redux-logger")
 
 native.init()
 
@@ -30,6 +34,9 @@ const remote = Electron.remote
 class PreviewBar extends React.Component<any, any> {
   constructor() {
     super()
+    this.state = {
+      phantomState: null,
+    }
   }
 
   style: React.CSSProperties = {
@@ -48,25 +55,31 @@ class PreviewBar extends React.Component<any, any> {
 
     console.log("adding " + city)
     selectedCities.push(city)
-    render()
+    this.setState({
+      phantomState: null,
+    })
   }
 
   removeCity(index: number) {
     selectedCities.splice(index, 1)
     selectedCitiesLatLon.splice(index, 1)
-    render()
+    this.setState({
+      phantomState: null,
+    })
   }
 
   render () {
     let previews: JSX.Element[] = []
+    console.log("this.props.cities is " + this.props.cities)
+    console.log("there are " + selectedCities.length + " selected cities")
     for (let i = 0; i < selectedCities.length; i++) {
-      previews.push(<Preview key={i} city={selectedCities[i]} index={i} removeCity={this.removeCity.bind(this)}/>)
+      previews.push(<Preview dispatch={this.props.dispatch} key={i} city={selectedCities[i]} index={i} removeCity={this.removeCity.bind(this)}/>)
     }
 
     return (
       <div style={this.style}>
         <div>
-          <Search addCity={this.addCity.bind(this)}/>
+          <Search dispatch={this.props.dispatch} addCity={this.addCity.bind(this)}/>
         </div>
         <div style={{whiteSpace: "nowrap", marginTop: "39px", textAlign: "center",}}>
           {previews}
@@ -158,6 +171,7 @@ class Preview extends React.Component<any, any> {
   getRemoveCityHandler() {
     return function() {
       console.log("removing city with index " + this.props.index)
+      this.props.dispatch({ type: REMOVE_CITY, index: this.props.index})
       this.props.removeCity(this.props.index)
     }.bind(this)
   }
@@ -206,8 +220,8 @@ class Search extends React.Component<any, any> {
     let allCities = fs.readFileSync("/Users/Garrett/Dropbox/Files/workspaces/centroid/cities", "utf8").split("\n")
     this.state = {
       inputText: "",
-      matches: [],
-      matchIndices: [],
+      matches: [] as string[],
+      matchIndices: [] as number[],
       allCities: allCities,
       fz: new Fuse(allCities, options),
       resultsVisible: false,
@@ -321,6 +335,7 @@ class Search extends React.Component<any, any> {
         event.preventDefault()
         this.props.addCity(this.state.matches[this.state.selectedResult])
         this.textInput.blur()
+        this.props.dispatch({type: ADD_CITY, name: this.state.matches[this.state.selectedResult]})
         break
       case 27: // Escape
         event.preventDefault()
@@ -516,7 +531,7 @@ class Centroid extends React.Component<any, any> {
 
   buttonStyle = {
     display: "block",
-    fontSize: "16px",
+    fontSize: "10px",
     padding: "3px",
     margin: "10px",
     borderRadius: "3px",
@@ -526,11 +541,10 @@ class Centroid extends React.Component<any, any> {
     height: "50vh",
     width: "80vh",
     background: "#aacbff",
-    border: "1px solid black",
+    border: "1px dotted black",
     margin: "0 auto",
     display: "block",
   }
-
   divStyle = {
     width: "640px",
     display: "block",
@@ -582,14 +596,74 @@ class Centroid extends React.Component<any, any> {
   }
 }
 
+function mapStateToProps(state: any): any {
+  return state
+}
+
+let App = connect(mapStateToProps)(
+  class App extends React.Component<any, any> {
+  render() {
+    return (
+      <div>
+        <PreviewBar dispatch={this.props.dispatch} cities={this.props.cities}/>
+        <Centroid cities={this.props.cities}/>
+      </div>
+    )
+  }
+})
+
+type ADD_CITY = "ADD_CITY";
+const ADD_CITY: ADD_CITY = "ADD_CITY";
+type AddCityAction = {
+  type: ADD_CITY,
+  name: string,
+}
+
+type REMOVE_CITY = "REMOVE_CITY";
+const REMOVE_CITY: REMOVE_CITY = "REMOVE_CITY";
+type RemoveCityAction = {
+  type: REMOVE_CITY,
+  index: number
+}
+type AppAction = AddCityAction | RemoveCityAction
+interface AppState {}
+
+function reducer(state: any, action: AppAction): any {
+  switch (action.type) {
+    case ADD_CITY:
+      return objectAssign({}, state, { cities: [...state.cities, action.name] })
+    case REMOVE_CITY:
+      return objectAssign({}, state, { cities: [...state.cities.slice(0, action.index), ...state.cities.slice(action.index + 1)]})
+    default:
+      return state
+  }
+}
+
+const store = compose(applyMiddleware(logger()))(createStore)(reducer, { cities: [] as string[]})
+// const store = createStore(
+//   reducer,
+//   applyMiddleware(logger)
+// )
+
+
+// function player(state: PlayerState = newPlayerState(), action: PlayerAction): PlayerState {
+//   switch (action.type) {
+//     case SET_URL:
+//       return objectAssign(state, { url: action.url })
+//     case SET_SIZE:
+//       return objectAssign(state, { width: action.width, height: action.height })
+//     default:
+//       return state
+//   }
+// }
+
+
 function render() {
   ReactDOM.render(
-    <div>
-      <PreviewBar/>
-      <Centroid/>
-    </div>,
+    <Provider store={store}>
+      <App/>
+    </Provider>,
     document.getElementById('root')
   )
 }
-
 render()

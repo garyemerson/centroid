@@ -50,7 +50,7 @@ function setupMenu() {
           role: 'redo'
         },
         {
-          type: 'separator'
+          type: "separator"
         },
         {
           role: 'cut'
@@ -98,7 +98,7 @@ function setupMenu() {
           }
         },
         {
-          type: 'separator'
+          type: "separator"
         },
         {
           role: 'resetzoom'
@@ -110,7 +110,7 @@ function setupMenu() {
           role: 'zoomout'
         },
         {
-          type: 'separator'
+          type: "separator"
         },
         {
           role: 'togglefullscreen'
@@ -148,14 +148,14 @@ function setupMenu() {
           role: 'about'
         },
         {
-          type: 'separator'
+          type: "separator"
         },
         {
           role: 'services',
           submenu: []
         },
         {
-          type: 'separator'
+          type: "separator"
         },
         {
           role: 'hide'
@@ -167,7 +167,7 @@ function setupMenu() {
           role: 'unhide'
         },
         {
-          type: 'separator'
+          type: "separator"
         },
         {
           role: 'quit'
@@ -177,7 +177,7 @@ function setupMenu() {
     // Edit menu.
     template[1].submenu.push(
       {
-        type: 'separator'
+        type: "separator"
       },
       {
         label: 'Speech',
@@ -208,7 +208,7 @@ function setupMenu() {
         role: 'zoom'
       },
       {
-        type: 'separator'
+        type: "separator"
       },
       {
         label: 'Bring All to Front',
