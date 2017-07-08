@@ -9,34 +9,21 @@ import Fuse = require('fuse.js')
 import https = require('https')
 import { Provider, connect } from 'react-redux'
 import { createStore, applyMiddleware, compose } from 'redux'
-// import { logger } from 'redux-logger'
 import logger = require("redux-logger")
 
 native.init()
 
-function printLatLons(latLons: number[][]) {
-  let str = ""
-  for (let i = 0; i < latLons.length; i++) {
-    str += "(" + latLons[i][0] + "," + latLons[i][1] + ") "
-  }
-  return str
-}
-
-let selectedCities: string[] = []
-let selectedCitiesLatLon: number[][] = []
 let resultList: any
 let results = {}
-let colorFlag = false
 
 // Get access to dialog boxes in our main UI process.
 const remote = Electron.remote
+const apiKeyFile = "/Users/Garrett/Dropbox/Files/workspaces/centroid/api_key"
+let apiKey: string | null = null
 
-class PreviewBar extends React.Component<any, any> {
+class CitySelection extends React.Component<any, any> {
   constructor() {
     super()
-    this.state = {
-      phantomState: null,
-    }
   }
 
   style: React.CSSProperties = {
@@ -44,44 +31,26 @@ class PreviewBar extends React.Component<any, any> {
     height: "33.33vh",
     background: "#efefef",
     overflowX: "scroll",
-  };
-
-  addCity(city: string) {
-    // let newSelectedCities = this.state.selectedCities.slice()
-    // newSelectedCities.push(city)
-    // this.setState({
-    //   selectedCities: newSelectedCities,
-    // })
-
-    console.log("adding " + city)
-    selectedCities.push(city)
-    this.setState({
-      phantomState: null,
-    })
   }
-
-  removeCity(index: number) {
-    selectedCities.splice(index, 1)
-    selectedCitiesLatLon.splice(index, 1)
-    this.setState({
-      phantomState: null,
-    })
+  previewBarStyle: React.CSSProperties = {
+    whiteSpace: "nowrap",
+    marginTop: "39px",
+    textAlign: "center",
   }
 
   render () {
     let previews: JSX.Element[] = []
-    console.log("this.props.cities is " + this.props.cities)
-    console.log("there are " + selectedCities.length + " selected cities")
-    for (let i = 0; i < selectedCities.length; i++) {
-      previews.push(<Preview dispatch={this.props.dispatch} key={i} city={selectedCities[i]} index={i} removeCity={this.removeCity.bind(this)}/>)
+    for (let i = 0; i < this.props.cities.length; i++) {
+      previews.push(<Preview dispatch={this.props.dispatch} key={i} cities={this.props.cities} city={this.props.cities[i].name}
+        lat={this.props.cities[i].lat} lon={this.props.cities[i].lon} index={i}/>)
     }
 
     return (
       <div style={this.style}>
         <div>
-          <Search dispatch={this.props.dispatch} addCity={this.addCity.bind(this)}/>
+          <Search dispatch={this.props.dispatch}/>
         </div>
-        <div style={{whiteSpace: "nowrap", marginTop: "39px", textAlign: "center",}}>
+        <div style={this.previewBarStyle}>
           {previews}
         </div>
       </div>
@@ -94,17 +63,16 @@ class Preview extends React.Component<any, any> {
     super(props)
     let cityEscaped = this.props.city.replace(/, /g , ",").replace(/ /g, "+")
 
-    let key = fs.readFileSync('/Users/Garrett/Dropbox/Files/workspaces/centroid/api_key').toString()
+    if (apiKey === null) {
+      apiKey = fs.readFileSync(apiKeyFile).toString().trim()
+    }
     this.state = {
       imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ cityEscaped + 
         "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
         "&markers=color:red%7C" + cityEscaped + 
-        "&key=" + key,
-      latLon: "-",
-      key: key,
-      city: this.props.city,
+        "&key=" + apiKey,
     }
-    this.getLatLon(cityEscaped, key)
+    this.getLatLon(cityEscaped, apiKey)
   }
 
   divStyle: React.CSSProperties = {
@@ -129,8 +97,16 @@ class Preview extends React.Component<any, any> {
     float: "right",
     fontWeight: "bold",
   }
+  imgButtonContainer: React.CSSProperties = {
+    display: "table",
+    border: "1px dotted blue",
+  }
 
   getLatLon(city: string, apiKey: string) {
+    city = city.trim()
+    console.log("city is '" + city + "'")
+    console.log("city encoded is '" + encodeURIComponent(city) + "'")
+    console.log("apiKey is '" + apiKey + "'")
     let requestPath = "/maps/api/geocode/json?address=" + city + "&key=" + apiKey
 
     const options = {
@@ -140,61 +116,92 @@ class Preview extends React.Component<any, any> {
       method: 'GET',
     };
 
-    const req = https.request(options, (res) => {
+    const req = https.request(options, (resp) => {
       let fullResponse = ""
-      console.log(`STATUS: ${res.statusCode}`);
-      res.setEncoding('utf8');
-      res.on('data', (chunk) => {
+      console.log(`STATUS: ${resp.statusCode}`);
+      resp.setEncoding('utf8');
+      resp.on('data', (chunk) => {
         fullResponse += chunk
       });
-      res.on('end', () => {
+      resp.on('end', () => {
         let obj = JSON.parse(fullResponse)
         let loc = obj.results[0].geometry.location
         console.log(loc)
-        selectedCitiesLatLon.push([loc.lat, loc.lng])
-        console.log("selectedCitiesLatLon is:")
-        console.log(selectedCitiesLatLon)
-        this.setState({
-          latLon: "(" + loc.lat + ", " + loc.lng + ")"
+        let latLons = this.props.cities.map((city) => [city.lat, city.lon])
+        console.log("latLons before dispatch")
+        console.log(latLons)
+        this.props.dispatch({
+          type: "ADD_LATLON_INFO",
+          index: this.props.index,
+          lat: loc.lat,
+          lon: loc.lng,
         })
-      });
-    });
+
+        latLons = this.props.cities.map((city) => [city.lat, city.lon])
+        console.log("latLons before add")
+        console.log(latLons)
+        // latLons = [...latLons, [loc.lat, loc.lng]]
+        // console.log("latLons is")
+        // console.log(latLons)
+        let centroid: number[] = native.computeCentroid(latLons)
+        console.log("centroid is")
+        console.log(centroid)
+        let centroidObj: Centroid
+        if (centroid.length !== 0) {
+          centroidObj = { lat: centroid[0], lon: centroid[1] }
+        } else {
+          centroidObj = { lat: null, lon: null }
+        }
+
+        this.props.dispatch({
+          type: "ADD_CENTROID",
+          centroid: centroidObj,
+        })
+      })
+    })
 
     req.on('error', (e) => {
-      console.error(`problem with request: ${e.message}`);
-    });
+      console.error(`problem with request: ${e.message}`)
+    })
 
-    req.end();
+    req.end()
     console.log("making request with path " + requestPath)
   }
 
-  getRemoveCityHandler() {
-    return function() {
-      console.log("removing city with index " + this.props.index)
-      this.props.dispatch({ type: REMOVE_CITY, index: this.props.index})
-      this.props.removeCity(this.props.index)
-    }.bind(this)
+  RemoveCity() {
+      this.props.dispatch({ type: "REMOVE_CITY", index: this.props.index})
   }
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.city !== this.state.city) {
+    if (nextProps.city !== this.props.city) {
       let cityEscaped = nextProps.city.replace(/, /g , ",").replace(/ /g, "+")
       this.setState({
         imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ cityEscaped + 
           "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
           "&markers=color:red%7C" + cityEscaped + 
-          "&key=" + this.state.key,
+          "&key=" + apiKey,
+      })
+    }
+    if (nextProps.lat !== this.props.lat || nextProps.lon !== this.props.lon) {
+      this.setState({
+        lat: nextProps.lat,
+        lon: nextProps.lon,
       })
     }
   }
 
   render () {
+    let latLonStr = "-"
+    if (this.props.lat !== null) {
+      latLonStr = "(" + this.props.lat + ", " + this.props.lon + ")"
+    }
+
     return (
       <div style={this.divStyle}>
         <p style={{marginBottom: "0"}}>{this.props.city}</p>
-        <p style={{marginTop: "0", marginBottom: "2px",}}>{this.state.latLon}</p>
-        <div style={{display: "table", border: "1px dotted blue"}}>
-          <button style={this.buttonStyle} onClick={this.getRemoveCityHandler()}>✕</button>
+        <p style={{marginTop: "0", marginBottom: "2px",}}>{latLonStr}</p>
+        <div style={this.imgButtonContainer}>
+          <button style={this.buttonStyle} onClick={this.RemoveCity.bind(this)}>✕</button>
           <img style={this.imgStyle} src={this.state.imgUrl}/>
         </div>
       </div>
@@ -214,9 +221,9 @@ class Search extends React.Component<any, any> {
       distance: 100,
       maxPatternLength: 32,
       minMatchCharLength: 1,
-    };
+    }
 
-    this.focusTextInput = this.focusTextInput.bind(this);
+    this.focusTextInput = this.focusTextInput.bind(this)
     let allCities = fs.readFileSync("/Users/Garrett/Dropbox/Files/workspaces/centroid/cities", "utf8").split("\n")
     this.state = {
       inputText: "",
@@ -239,14 +246,14 @@ class Search extends React.Component<any, any> {
 
   textInput: any
   resultList: any
-  style = {
+  style: React.CSSProperties = {
     display: "table",
     position: "absolute",
     left: "calc(50% - 10em)",
     margin: "0 auto 10px auto",
     borderRadius: "3px",
   }
-  inputStyle = {
+  inputStyle: React.CSSProperties = {
     width: "20em",
     fontFamily: "sans-serif",
     fontSize: "16px",
@@ -255,10 +262,11 @@ class Search extends React.Component<any, any> {
     zIndex: 2,
     padding: "5px 3px",
     border: "1px solid #ddd",
+    borderRadius: "3px",
   }
 
   focusTextInput() {
-    this.textInput.focus();
+    this.textInput.focus()
     if (this.state.inputText !== "") {
       this.textInput.select()
     }
@@ -297,13 +305,10 @@ class Search extends React.Component<any, any> {
     console.log("change event triggered with key '%s'", event.target.value)
     this.setState({
       inputText: event.target.value
-    });
+    })
 
     if (event.target.value !== "") {
-      let start = performance.now()
       let results = this.state.fz.search(event.target.value)
-      console.log("fz search took " + Math.floor(performance.now() - start) + " milliseconds.")
-
       let numToKeep = Math.min(results.length, 20)
       results = results.slice(0, numToKeep)
 
@@ -333,9 +338,8 @@ class Search extends React.Component<any, any> {
     switch (event.keyCode) {
       case 13: // Enter
         event.preventDefault()
-        this.props.addCity(this.state.matches[this.state.selectedResult])
         this.textInput.blur()
-        this.props.dispatch({type: ADD_CITY, name: this.state.matches[this.state.selectedResult]})
+        this.props.dispatch({type: "ADD_CITY", name: this.state.matches[this.state.selectedResult]})
         break
       case 27: // Escape
         event.preventDefault()
@@ -387,34 +391,30 @@ class Search extends React.Component<any, any> {
 
   render() {
     let results: JSX.Element | null = null
-    let focusedStyle: string | null = null
-    let resultsStyle = "#search { border-radius: 3px; }"
+    let style = this.style
+    let inputStyle = this.inputStyle
     if (this.state.focused) {
-      focusedStyle = "#foobar { box-shadow: 0 0 40px 5px rgba(0, 0, 0, 0.125); }"
+      style = objectAssign({}, this.style, {boxShadow: "0 0 40px 5px rgba(0, 0, 0, 0.125)"})
       if (this.state.matches.length > 0) {
-        resultsStyle = "#search { border-radius: 3px 3px 0 0; }"
-        console.log("there are matches")
-        results = <Results ref={(results) => this.resultList = results} matches={this.state.matches}
-          matchIndices={this.state.matchIndices} addCity={this.props.addCity} selectedIndex={this.state.selectedResult}/>
+        inputStyle = objectAssign({}, this.inputStyle, {borderRadius: "3px 3px 0 0"})
+        results = <Results dispatch={this.props.dispatch} ref={(results) => this.resultList = results} matches={this.state.matches}
+          matchIndices={this.state.matchIndices} selectedIndex={this.state.selectedResult} scrollTop={this.state.scrollTop}/>
       }
     }
+
     return (
-      <div id="foobar" style={this.style}>
+      <div id="search" style={style}>
         <style>
-          {focusedStyle}
+          {"#input::-webkit-input-placeholder { font-style: italic; }" +
+           "#input:-moz-placeholder { font-style: italic; }" +
+           "#input::-moz-placeholder { font-style: italic; }" +
+           "#input:-ms-input-placeholder { font-style: italic; }"}
         </style>
-        <style>
-          {"#search::-webkit-input-placeholder {font-style: italic; }" +
-           "#search:-moz-placeholder {font-style: italic; }" +
-           "#search::-moz-placeholder {font-style: italic; }" +
-           "#search:-ms-input-placeholder {font-style: italic; }"}
-        </style>
-        <style>{resultsStyle}</style>
-        <input id="search" value={this.state.inputText} style={this.inputStyle} type="text" name="city"
+        <input id="input" value={this.state.inputText} style={inputStyle} type="text" name="city"
           placeholder={"Search City " + (process.platform === 'darwin' ? '(cmd+L)' : '(ctrl+L)')}
           onFocus={this.handleFocus.bind(this)}
           onBlur={this.handleBlur.bind(this)} onChange={this.handleChange.bind(this)}
-          ref={(input) => { this.textInput = input; }} onKeyDown={this.handleKeyPress.bind(this)}/>
+          ref={(input) => { this.textInput = input }} onKeyDown={this.handleKeyPress.bind(this)}/>
         {results}
       </div>
     )
@@ -479,16 +479,16 @@ class Results extends React.Component<any, any> {
     return spans
   }
 
-  getMouseDownHandler(city: string) {
+  getAddCityFn(city: string) {
     return function(e: any) {
-      e.preventDefault();
-      this.props.addCity(city)
+      e.preventDefault()
+      this.props.dispatch({type: "ADD_CITY", name: city})
     }.bind(this)
   }
 
   render() {
     let start = performance.now()
-    let liElems: JSX.Element[] = [];
+    let liElems: JSX.Element[] = []
     console.log("there are " + this.props.matches.length + " matches")
     for (let i = 0; i < this.props.matches.length; i++) {
       let liContent = this.getHighlightedSpans(i)
@@ -498,11 +498,11 @@ class Results extends React.Component<any, any> {
       if (i === this.props.selectedIndex) {
         selectedStyle = <style>{"#dropdownEntry" + i + "{background-color: #eaeaea}"}</style>
         li = <li ref={(result) => results[i] = result} key={i} id={"dropdownEntry" + i}
-          onMouseDown={this.getMouseDownHandler(this.props.matches[i])} style={this.liStyle}>
+          onMouseDown={this.getAddCityFn(this.props.matches[i])} style={this.liStyle}>
           {selectedStyle}{hoverStyle}{liContent}</li>
       } else {
         li = <li ref={(result) => results[i] = result} key={i} id={"dropdownEntry" + i}
-          onMouseDown={this.getMouseDownHandler(this.props.matches[i])} style={this.liStyle}>{hoverStyle}{liContent}</li>
+          onMouseDown={this.getAddCityFn(this.props.matches[i])} style={this.liStyle}>{hoverStyle}{liContent}</li>
       }
 
       liElems.push(li)
@@ -520,13 +520,9 @@ class Results extends React.Component<any, any> {
   }
 }
 
-class Centroid extends React.Component<any, any> {
+class CentroidDisplay extends React.Component<any, any> {
   constructor() {
     super()
-    this.state = {
-      imgUrl: "",
-      centroidLatLon: "",
-    }
   }
 
   buttonStyle = {
@@ -553,46 +549,40 @@ class Centroid extends React.Component<any, any> {
     margin: "0 auto",
   }
 
-  compute() {
-    let key = fs.readFileSync('/Users/Garrett/Dropbox/Files/workspaces/centroid/api_key').toString()
-    console.log("computing centroid")
-
-    let centroid: number[] = native.computeCentroid(selectedCitiesLatLon)
-    if (centroid.length === 0) {
-      this.setState({
-        imgUrl: "none"
-      })
-    } else {
-      console.log("centroid is " + centroid)
-      this.setState({
-        imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ centroid[0] + "," + centroid[1] + 
-        "&zoom=5&size=640x400&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
-        "&markers=color:red%7C" + centroid[0] + "," + centroid[1] + 
-        "&key=" + key,
-        centroidLatLon: "" + centroid[0] + "," + centroid[1],
-      })
-    }
+  shouldComponentUpdate(nextProps, nextState) {
+    let currLat = this.props.centroid === null ? null : this.props.centroid.lat
+    let newLat = nextProps.centroid === null ? null : nextProps.centroid.lat
+    let currLon = this.props.centroid === null ? null : this.props.centroid.lon
+    let newLon = nextProps.centroid === null ? null : nextProps.centroid.lon
+    return this.props.centroid !== nextProps.centroid || (currLat !== newLat) || (currLon !== newLon)
   }
 
   render() {
-    if (this.state.imgUrl.length === 0) { // we haven't yet attempted to compute centroid
-      return <div>
-        <button style={this.buttonStyle} onClick={this.compute.bind(this)}>Compute Centroid</button>
-      </div>
-    } else if (this.state.imgUrl === "none") { // we've tried computing the centroid and there is none
-      return <div>
-        <button style={this.buttonStyle} onClick={this.compute.bind(this)}>Compute Centroid</button>
-        <p>not contained in one hemisphere</p>
-      </div>
-    } else { // there is a centroid
-      return <div>
-        <button style={this.buttonStyle} onClick={this.compute.bind(this)}>Compute Centroid</button>
+    let centroidElem: JSX.Element | null
+    if (this.props.centroid === null) {
+      centroidElem = null
+    } else if (this.props.centroid.lat === null) {
+      centroidElem = <p>not contained in one hemisphere</p>
+    } else {
+      let imgUrl = "https://maps.googleapis.com/maps/api/staticmap?center=" +
+        this.props.centroid.lat + "," + this.props.centroid.lon +
+        "&zoom=5&size=640x400&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
+        "&markers=color:red%7C" + this.props.centroid.lat + "," + this.props.centroid.lon +
+        "&key=" + apiKey
+      let latLon = "" + this.props.centroid.lat + "," + this.props.centroid.lon
+      centroidElem = (
         <div  style={this.divStyle}>
-          <p>({this.state.centroidLatLon})</p>
-          <img style={this.imgStyle} src={this.state.imgUrl}/>
+          <p>({latLon})</p>
+          <img style={this.imgStyle} src={imgUrl}/>
         </div>
-      </div>
+      )
     }
+
+    return (
+      <div>
+        {centroidElem}
+      </div>
+    )
   }
 }
 
@@ -605,58 +595,89 @@ let App = connect(mapStateToProps)(
   render() {
     return (
       <div>
-        <PreviewBar dispatch={this.props.dispatch} cities={this.props.cities}/>
-        <Centroid cities={this.props.cities}/>
+        <CitySelection dispatch={this.props.dispatch} cities={this.props.cities}/>
+        <CentroidDisplay cities={this.props.cities} centroid={this.props.centroid}/>
       </div>
     )
   }
 })
 
-type ADD_CITY = "ADD_CITY";
-const ADD_CITY: ADD_CITY = "ADD_CITY";
-type AddCityAction = {
-  type: ADD_CITY,
+interface AddCity {
+  type: "ADD_CITY",
   name: string,
 }
-
-type REMOVE_CITY = "REMOVE_CITY";
-const REMOVE_CITY: REMOVE_CITY = "REMOVE_CITY";
-type RemoveCityAction = {
-  type: REMOVE_CITY,
-  index: number
+interface RemoveCity {
+  type: "REMOVE_CITY",
+  index: number,
 }
-type AppAction = AddCityAction | RemoveCityAction
+interface AddLatLonInfo {
+  type: "ADD_LATLON_INFO",
+  index: number,
+  lat: number,
+  lon: number,
+}
+interface AddCentroid {
+  type: "ADD_CENTROID",
+  centroid: Centroid,
+}
+interface City {
+  name: string,
+  lat: number | null,
+  lon: number | null,
+}
+interface Centroid {
+  lat: number | null,
+  lon: number | null,
+}
+type AppAction = AddCity | RemoveCity | AddLatLonInfo | AddCentroid
 interface AppState {}
 
 function reducer(state: any, action: AppAction): any {
   switch (action.type) {
-    case ADD_CITY:
-      return objectAssign({}, state, { cities: [...state.cities, action.name] })
-    case REMOVE_CITY:
+    case "ADD_CITY":
+      return objectAssign({}, state, { cities: [...state.cities, { name: action.name, lat: null, lon: null }] })
+    case "REMOVE_CITY":
       return objectAssign({}, state, { cities: [...state.cities.slice(0, action.index), ...state.cities.slice(action.index + 1)]})
+    case "ADD_LATLON_INFO":
+      return objectAssign(
+        {},
+        state,
+        {
+          cities:
+            [
+              ...state.cities.slice(0, action.index),
+              {
+                name: state.cities[action.index].name,
+                lat: action.lat,
+                lon: action.lon
+              },
+              ...state.cities.slice(action.index + 1)
+            ]
+        })
+    case "ADD_CENTROID":
+      return objectAssign(
+        {},
+        state,
+        {
+          centroid: {
+            lat: action.centroid.lat,
+            lon: action.centroid.lon,
+          }
+        })
     default:
       return state
   }
 }
 
-const store = compose(applyMiddleware(logger()))(createStore)(reducer, { cities: [] as string[]})
+const store = compose(applyMiddleware(logger()))(createStore)(reducer,
+  {
+    cities: [] as City[],
+    centroid: null as Centroid | null,
+  })
 // const store = createStore(
 //   reducer,
 //   applyMiddleware(logger)
 // )
-
-
-// function player(state: PlayerState = newPlayerState(), action: PlayerAction): PlayerState {
-//   switch (action.type) {
-//     case SET_URL:
-//       return objectAssign(state, { url: action.url })
-//     case SET_SIZE:
-//       return objectAssign(state, { width: action.width, height: action.height })
-//     default:
-//       return state
-//   }
-// }
-
 
 function render() {
   ReactDOM.render(

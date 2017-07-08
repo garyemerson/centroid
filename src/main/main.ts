@@ -22,7 +22,7 @@ function createWindow() {
     pathname: path.join(__dirname, 'app', 'index.html'),
     protocol: 'file:',
     slashes: true,
-    search: 'react_perf'
+    // search: 'react_perf',
   })
   win.loadURL(indexUrl)
 

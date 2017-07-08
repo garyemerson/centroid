@@ -8,7 +8,7 @@
     "install": "native/build.sh && webpack",
     "watch": "webpack --watch",
     "start": "electron .",
-    "dist": "build"
+    "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false build"
   },
   "author": "",
   "license": "ISC",
@@ -17,6 +17,7 @@
     "electron": "^1.4.12",
     "electron-builder": "^10.8.1",
     "electron-react-devtools": "^0.4.0",
+    "electron-rebuild": "^1.5.11",
     "neon-cli": "^0.1.7",
     "node-gyp": "^3.4.0",
     "redux-devtools": "^3.3.1",

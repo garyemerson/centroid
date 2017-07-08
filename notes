@@ -1,5 +1,8 @@
 TODO
 ----
+* Fix: adding city when enough exist to create scroll there's no visual indication it was added bc it's added to the end to the right where the element is not in view
+* Replace componentWillReceiveProps() will shouldComponentUpdate()
+* Submit pull request for neon docs examples
 * Immediate calculation instead of having to push button
     * includes when cities removed
 * Dropdown arrow key still possible to move selection out of view when manually scroll out of view then use arrow key
