@@ -67,10 +67,13 @@ class Preview extends React.Component<any, any> {
       apiKey = fs.readFileSync(apiKeyFile).toString().trim()
     }
     this.state = {
+      city: this.props.city,
       imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ cityEscaped + 
         "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
         "&markers=color:red%7C" + cityEscaped + 
         "&key=" + apiKey,
+      lat: this.props.lat,
+      lon: this.props.lon,
     }
     this.getLatLon(cityEscaped, apiKey)
   }
@@ -127,35 +130,11 @@ class Preview extends React.Component<any, any> {
         let obj = JSON.parse(fullResponse)
         let loc = obj.results[0].geometry.location
         console.log(loc)
-        let latLons = this.props.cities.map((city) => [city.lat, city.lon])
-        console.log("latLons before dispatch")
-        console.log(latLons)
         this.props.dispatch({
           type: "ADD_LATLON_INFO",
           index: this.props.index,
           lat: loc.lat,
           lon: loc.lng,
-        })
-
-        latLons = this.props.cities.map((city) => [city.lat, city.lon])
-        console.log("latLons before add")
-        console.log(latLons)
-        // latLons = [...latLons, [loc.lat, loc.lng]]
-        // console.log("latLons is")
-        // console.log(latLons)
-        let centroid: number[] = native.computeCentroid(latLons)
-        console.log("centroid is")
-        console.log(centroid)
-        let centroidObj: Centroid
-        if (centroid.length !== 0) {
-          centroidObj = { lat: centroid[0], lon: centroid[1] }
-        } else {
-          centroidObj = { lat: null, lon: null }
-        }
-
-        this.props.dispatch({
-          type: "ADD_CENTROID",
-          centroid: centroidObj,
         })
       })
     })
@@ -169,17 +148,20 @@ class Preview extends React.Component<any, any> {
   }
 
   RemoveCity() {
-      this.props.dispatch({ type: "REMOVE_CITY", index: this.props.index})
+    this.props.dispatch({
+      type: "REMOVE_CITY",
+      index: this.props.index
+    })
   }
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.city !== this.props.city) {
       let cityEscaped = nextProps.city.replace(/, /g , ",").replace(/ /g, "+")
       this.setState({
+        city: nextProps.city,
         imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ cityEscaped + 
-          "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
-          "&markers=color:red%7C" + cityEscaped + 
-          "&key=" + apiKey,
+          "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" +
+          "&scale=2" + "&markers=color:red%7C" + cityEscaped + "&key=" + apiKey,
       })
     }
     if (nextProps.lat !== this.props.lat || nextProps.lon !== this.props.lon) {
@@ -192,13 +174,13 @@ class Preview extends React.Component<any, any> {
 
   render () {
     let latLonStr = "-"
-    if (this.props.lat !== null) {
-      latLonStr = "(" + this.props.lat + ", " + this.props.lon + ")"
+    if (this.state.lat !== null) {
+      latLonStr = "(" + this.state.lat + ", " + this.state.lon + ")"
     }
 
     return (
       <div style={this.divStyle}>
-        <p style={{marginBottom: "0"}}>{this.props.city}</p>
+        <p style={{marginBottom: "0"}}>{this.state.city}</p>
         <p style={{marginTop: "0", marginBottom: "2px",}}>{latLonStr}</p>
         <div style={this.imgButtonContainer}>
           <button style={this.buttonStyle} onClick={this.RemoveCity.bind(this)}>✕</button>
@@ -523,6 +505,10 @@ class Results extends React.Component<any, any> {
 class CentroidDisplay extends React.Component<any, any> {
   constructor() {
     super()
+
+    this.state = {
+      phantomState: null
+    }
   }
 
   buttonStyle = {
@@ -549,27 +535,45 @@ class CentroidDisplay extends React.Component<any, any> {
     margin: "0 auto",
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
-    let currLat = this.props.centroid === null ? null : this.props.centroid.lat
-    let newLat = nextProps.centroid === null ? null : nextProps.centroid.lat
-    let currLon = this.props.centroid === null ? null : this.props.centroid.lon
-    let newLon = nextProps.centroid === null ? null : nextProps.centroid.lon
-    return this.props.centroid !== nextProps.centroid || (currLat !== newLat) || (currLon !== newLon)
+  componentWillReceiveProps(nextProps) {
+    this.setState({
+      phantomState: null
+    })
+  }
+
+  computeCentroid() {
+    let centroid: Centroid | null = null
+    if (this.props.cities.length !== 0) {
+      let latLons = this.props.cities.map((city) => [city.lat, city.lon])
+      let centroidLatLon: number[] = native.computeCentroid(latLons)
+
+      console.log("latLons is\n", latLons)
+      console.log("add city: centroid is\n", centroidLatLon)
+
+      if (centroidLatLon.length !== 0) {
+        centroid = { lat: centroidLatLon[0], lon: centroidLatLon[1] }
+      } else {
+        centroid = { lat: null, lon: null }
+      }
+    }
+
+    return centroid
   }
 
   render() {
+    let centroid: Centroid | null = this.computeCentroid()
     let centroidElem: JSX.Element | null
-    if (this.props.centroid === null) {
+    if (centroid === null) {
       centroidElem = null
-    } else if (this.props.centroid.lat === null) {
+    } else if (centroid.lat === null) {
       centroidElem = <p>not contained in one hemisphere</p>
     } else {
       let imgUrl = "https://maps.googleapis.com/maps/api/staticmap?center=" +
-        this.props.centroid.lat + "," + this.props.centroid.lon +
-        "&zoom=5&size=640x400&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
-        "&markers=color:red%7C" + this.props.centroid.lat + "," + this.props.centroid.lon +
+        centroid.lat + "," + centroid.lon +
+        "&zoom=5&size=640x400&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" +
+        "&scale=2" + "&markers=color:red%7C" + centroid.lat + "," + centroid.lon +
         "&key=" + apiKey
-      let latLon = "" + this.props.centroid.lat + "," + this.props.centroid.lon
+      let latLon = "" + centroid.lat + "," + centroid.lon
       centroidElem = (
         <div  style={this.divStyle}>
           <p>({latLon})</p>
