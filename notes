@@ -1,11 +1,12 @@
 TODO
 ----
-* Fix: adding city when enough exist to create scroll there's no visual indication it was added bc it's added to the end to the right where the element is not in view
-* Immediate calculation instead of having to push button
-    * includes when cities removed
+* Fix single city centroid issue
 * Dropdown arrow key still possible to move selection out of view when manually scroll out of view then use arrow key
+* Shadows on previews and centroid img
+* Move React components into separate files
+* Fix: adding city when enough exist to create scroll there's no visual indication it was added bc it's added to the end to the right where the element is not in view
 * Prevent dropdown from disappearing when OS app loses focus
-* Improve centroid caclulation. Ex of bad calculation:
+* Improve centroid calculation. Ex of bad calculation:
     (40.7127837, -74.0059413) New York (NY), United States
     (37.566535, 126.9779692) Seoul, South Korea
     (28.7040592, 77.10249019999999) Delhi, India

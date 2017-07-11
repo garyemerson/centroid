@@ -1,7 +1,5 @@
 extern crate env_logger;
 #[macro_use]
-extern crate log;
-#[macro_use]
 extern crate neon;
 extern crate rand;
 extern crate rayon;
@@ -191,7 +189,12 @@ fn compute_centroid_lat_lon(call: Call) -> JsResult<JsArray> {
         println!("{:?} {:?} ({})", to_lat_lon(p), p, mag(p));
     }
 
-    let centroid: Result<Point, String> = compute_centroid_xyz(&xyz_points);
+    let centroid: Result<Point, String>;
+    if xyz_points.len() == 1 {
+        centroid = Ok(xyz_points.drain(..).nth(0).unwrap());
+    } else {
+        centroid = compute_centroid_xyz(&xyz_points);
+    }
     match centroid {
         Ok(p) => {
             let arr: Handle<JsArray> = JsArray::new(call.scope, 3);

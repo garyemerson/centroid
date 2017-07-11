@@ -8,7 +8,7 @@ import fs = require('fs')
 import Fuse = require('fuse.js')
 import https = require('https')
 import { Provider, connect } from 'react-redux'
-import { createStore, applyMiddleware, compose } from 'redux'
+import { createStore, applyMiddleware, compose, Action } from 'redux'
 import logger = require("redux-logger")
 
 native.init()
@@ -78,7 +78,7 @@ class Preview extends React.Component<any, any> {
     this.getLatLon(cityEscaped, apiKey)
   }
 
-  divStyle: React.CSSProperties = {
+  style: React.CSSProperties = {
     height: "20vh",
     display: "inline-block",
     margin: "0 10px 10px 10px",
@@ -90,19 +90,34 @@ class Preview extends React.Component<any, any> {
     height: "15vh",
     width: "25vh",
     background: "#aacbff",
+    border: "1px solid #d0d0d0",
+    borderRadius: "3px",
+    boxShadow: "0 0 10px 2.5px rgba(0, 0, 0, 0.05)",
   }
   buttonStyle: React.CSSProperties = {
     position: "relative",
-    top: "15px",
+    top:" 25px",
     zIndex: 1,
     overflow: "visible",
     marginTop: "-24px",
     float: "right",
-    fontWeight: "bold",
+    fontWeight: "bolder",
+    padding:" 0",
+    boxShadow: "inset 0 0 10px #bbb5b5",
+    border: "1px solid #ddd",
+    opacity: 0.9,
+    color: "#333",
+    right: "10px",
+    height: "17px",
+    width: "17px",
+    fontSize: "12px",
+    paddingLeft: "0.75px",
+    borderRadius: "50%",
+    textAlign: "center",
+    outlineStyle: "none",
   }
   imgButtonContainer: React.CSSProperties = {
     display: "table",
-    border: "1px dotted blue",
   }
 
   getLatLon(city: string, apiKey: string) {
@@ -178,12 +193,14 @@ class Preview extends React.Component<any, any> {
       latLonStr = "(" + this.state.lat + ", " + this.state.lon + ")"
     }
 
+    let buttonHoverStyle = <style>{"#removeButton:hover {background-color: #ff6868}"}</style>
     return (
-      <div style={this.divStyle}>
+      <div style={this.style}>
         <p style={{marginBottom: "0"}}>{this.state.city}</p>
         <p style={{marginTop: "0", marginBottom: "2px",}}>{latLonStr}</p>
         <div style={this.imgButtonContainer}>
-          <button style={this.buttonStyle} onClick={this.RemoveCity.bind(this)}>✕</button>
+          {buttonHoverStyle}
+          <button id="removeButton" style={this.buttonStyle} onClick={this.RemoveCity.bind(this)}>✕</button>
           <img style={this.imgStyle} src={this.state.imgUrl}/>
         </div>
       </div>
@@ -511,7 +528,7 @@ class CentroidDisplay extends React.Component<any, any> {
     }
   }
 
-  buttonStyle = {
+  buttonStyle: React.CSSProperties = {
     display: "block",
     fontSize: "10px",
     padding: "3px",
@@ -519,20 +536,32 @@ class CentroidDisplay extends React.Component<any, any> {
     borderRadius: "3px",
     backgroundColor: "#fff",
   }
-  imgStyle = {
+  imgStyle: React.CSSProperties = {
     height: "50vh",
     width: "80vh",
     background: "#aacbff",
-    border: "1px dotted black",
     margin: "0 auto",
     display: "block",
+    border: "1px solid #444",
+    borderRadius: "2px",
+    // boxShadow: "0 0 5px 2.5px rgba(0, 0, 0, 0.05)",
   }
-  divStyle = {
-    width: "640px",
+  divStyle: React.CSSProperties = {
+    // width: "640px",
     display: "block",
     textAlign: "center",
     fontFamily: "monospace",
-    margin: "0 auto",
+    // margin: "0 auto",
+    // border: "50px solid lightgray",
+    // borderRadius: "3px",
+    width: "100%",
+    boxSizing: "border-box",
+    height: "65vh",
+    background: "lightgray",
+    margin: 0,
+    backgroundSize: "cover",
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "50% 50%",
   }
 
   componentWillReceiveProps(nextProps) {
@@ -560,31 +589,46 @@ class CentroidDisplay extends React.Component<any, any> {
     return centroid
   }
 
+  getImgDimensions(width: number, height: number): {width: number, height: number} {
+    let ratio = 1.6
+    if (width / height > ratio) {
+      return { width: Math.floor(width), height: Math.floor(width / ratio) }
+    } else {
+      return { width: Math.floor(height * ratio), height: Math.floor(height) }
+    }
+  }
+
   render() {
     let centroid: Centroid | null = this.computeCentroid()
     let centroidElem: JSX.Element | null
+    let divStyle = this.divStyle
     if (centroid === null) {
       centroidElem = null
     } else if (centroid.lat === null) {
       centroidElem = <p>not contained in one hemisphere</p>
     } else {
-      let imgUrl = "https://maps.googleapis.com/maps/api/staticmap?center=" +
-        centroid.lat + "," + centroid.lon +
-        "&zoom=5&size=640x400&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" +
-        "&scale=2" + "&markers=color:red%7C" + centroid.lat + "," + centroid.lon +
+      let imgDim = this.getImgDimensions(document.documentElement.clientWidth, document.documentElement.clientHeight)
+      console.log("imgDim is ", imgDim)
+      let imgUrl = "https://maps.googleapis.com/maps/api/staticmap?center=" + centroid.lat + "," +
+        centroid.lon + "&zoom=6&size=" + imgDim.width + "x" + imgDim.height +
+        "&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
+        "&markers=color:red%7C" + centroid.lat + "," + centroid.lon +
         "&key=" + apiKey
+      console.log("imgUrl is ", imgUrl)
       let latLon = "" + centroid.lat + "," + centroid.lon
-      centroidElem = (
-        <div  style={this.divStyle}>
-          <p>({latLon})</p>
-          <img style={this.imgStyle} src={imgUrl}/>
-        </div>
-      )
+
+      divStyle = objectAssign({}, divStyle, {backgroundImage: "url(" + imgUrl + ")"})
+      // centroidElem = (
+      //   <div  style={this.divStyle}>
+      //     <p>({latLon})</p>
+      //     <img style={this.imgStyle} src={imgUrl}/>
+      //   </div>
+      // )
     }
 
     return (
       <div>
-        {centroidElem}
+        <div style={divStyle}></div>
       </div>
     )
   }
@@ -598,7 +642,7 @@ let App = connect(mapStateToProps)(
   class App extends React.Component<any, any> {
   render() {
     return (
-      <div>
+      <div style={{background: "lightgray"}}>
         <CitySelection dispatch={this.props.dispatch} cities={this.props.cities}/>
         <CentroidDisplay cities={this.props.cities} centroid={this.props.centroid}/>
       </div>
@@ -606,21 +650,21 @@ let App = connect(mapStateToProps)(
   }
 })
 
-interface AddCity {
+interface AddCity extends Action {
   type: "ADD_CITY",
   name: string,
 }
-interface RemoveCity {
+interface RemoveCity extends Action {
   type: "REMOVE_CITY",
   index: number,
 }
-interface AddLatLonInfo {
+interface AddLatLonInfo extends Action {
   type: "ADD_LATLON_INFO",
   index: number,
   lat: number,
   lon: number,
 }
-interface AddCentroid {
+interface AddCentroid extends Action {
   type: "ADD_CENTROID",
   centroid: Centroid,
 }
