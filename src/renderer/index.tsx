@@ -10,6 +10,7 @@ import https = require('https')
 import { Provider, connect } from 'react-redux'
 import { createStore, applyMiddleware, compose, Action } from 'redux'
 import logger = require("redux-logger")
+import gmaps = require('./gmaps')
 
 native.init()
 
@@ -18,8 +19,10 @@ let results = {}
 
 // Get access to dialog boxes in our main UI process.
 const remote = Electron.remote
-const apiKeyFile = "/Users/Garrett/Dropbox/Files/workspaces/centroid/api_key"
-let apiKey: string | null = null
+const apiKeyFile1 = "/Users/Garrett/Dropbox/Files/workspaces/centroid/api_key1"
+const apiKeyFile2 = "/Users/Garrett/Dropbox/Files/workspaces/centroid/api_key2"
+let apiKey1: string | null = null
+let apiKey2: string | null = null
 
 class CitySelection extends React.Component<any, any> {
   constructor() {
@@ -63,19 +66,19 @@ class Preview extends React.Component<any, any> {
     super(props)
     let cityEscaped = this.props.city.replace(/, /g , ",").replace(/ /g, "+")
 
-    if (apiKey === null) {
-      apiKey = fs.readFileSync(apiKeyFile).toString().trim()
+    if (apiKey1 === null) {
+      apiKey1 = fs.readFileSync(apiKeyFile1).toString().trim()
     }
     this.state = {
       city: this.props.city,
       imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ cityEscaped + 
         "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
         "&markers=color:red%7C" + cityEscaped + 
-        "&key=" + apiKey,
+        "&key=" + apiKey1,
       lat: this.props.lat,
       lon: this.props.lon,
     }
-    this.getLatLon(cityEscaped, apiKey)
+    this.getLatLon(cityEscaped, apiKey1)
   }
 
   style: React.CSSProperties = {
@@ -120,12 +123,12 @@ class Preview extends React.Component<any, any> {
     display: "table",
   }
 
-  getLatLon(city: string, apiKey: string) {
+  getLatLon(city: string, apiKey1: string) {
     city = city.trim()
     console.log("city is '" + city + "'")
     console.log("city encoded is '" + encodeURIComponent(city) + "'")
-    console.log("apiKey is '" + apiKey + "'")
-    let requestPath = "/maps/api/geocode/json?address=" + city + "&key=" + apiKey
+    console.log("apiKey1 is '" + apiKey1 + "'")
+    let requestPath = "/maps/api/geocode/json?address=" + city + "&key=" + apiKey1
 
     const options = {
       hostname: 'maps.googleapis.com',
@@ -176,7 +179,7 @@ class Preview extends React.Component<any, any> {
         city: nextProps.city,
         imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ cityEscaped + 
           "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" +
-          "&scale=2" + "&markers=color:red%7C" + cityEscaped + "&key=" + apiKey,
+          "&scale=2" + "&markers=color:red%7C" + cityEscaped + "&key=" + apiKey1,
       })
     }
     if (nextProps.lat !== this.props.lat || nextProps.lon !== this.props.lon) {
@@ -523,11 +526,17 @@ class CentroidDisplay extends React.Component<any, any> {
   constructor() {
     super()
 
+    if (apiKey2 === null) {
+      apiKey2 = fs.readFileSync(apiKeyFile2).toString().trim()
+    }
+
     this.state = {
       phantomState: null
     }
   }
 
+  mapObj: any
+  mapElem: any
   buttonStyle: React.CSSProperties = {
     display: "block",
     fontSize: "10px",
@@ -570,7 +579,7 @@ class CentroidDisplay extends React.Component<any, any> {
     })
   }
 
-  computeCentroid() {
+  computeCentroid(): Centroid | null {
     let centroid: Centroid | null = null
     if (this.props.cities.length !== 0) {
       let latLons = this.props.cities.map((city) => [city.lat, city.lon])
@@ -598,6 +607,43 @@ class CentroidDisplay extends React.Component<any, any> {
     }
   }
 
+  componentDidMount() {
+    if (this.mapElem !== null) {
+      console.log("initializing map")
+      console.log("gmaps:")
+      console.log(gmaps)
+      // console.log("google is ", google)
+
+      let gm = gmaps({
+        div: '#map',
+        lat: -12.043333,
+        lng: -77.028333
+      });
+
+      // this.mapObj = new google.maps.Map(this.mapElem, {
+      //   zoom: 12,
+      //   center: {lat: -28.643387, lng: 153.612224},
+      //   mapTypeControl: true,
+      //   mapTypeControlOptions: {
+      //       style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+      //       position: google.maps.ControlPosition.TOP_CENTER
+      //   },
+      //   zoomControl: true,
+      //   zoomControlOptions: {
+      //       position: google.maps.ControlPosition.LEFT_CENTER
+      //   },
+      //   scaleControl: true,
+      //   streetViewControl: true,
+      //   streetViewControlOptions: {
+      //       position: google.maps.ControlPosition.LEFT_TOP
+      //   },
+      //   fullscreenControl: true
+      // });
+    } else {
+      console.log("map is null")
+    }
+  }
+
   render() {
     let centroid: Centroid | null = this.computeCentroid()
     let centroidElem: JSX.Element | null
@@ -613,9 +659,11 @@ class CentroidDisplay extends React.Component<any, any> {
         centroid.lon + "&zoom=6&size=" + imgDim.width + "x" + imgDim.height +
         "&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
         "&markers=color:red%7C" + centroid.lat + "," + centroid.lon +
-        "&key=" + apiKey
+        "&key=" + apiKey1
       console.log("imgUrl is ", imgUrl)
       let latLon = "" + centroid.lat + "," + centroid.lon
+
+      centroidElem = <iframe style={{width: "99%", height: "65vh", border: "none"}} src={"https://www.google.com/maps/embed/v1/place?q=" + centroid.lat + "," + centroid.lon + "&zoom=6&key=" + apiKey2}></iframe>
 
       divStyle = objectAssign({}, divStyle, {backgroundImage: "url(" + imgUrl + ")"})
       // centroidElem = (
@@ -627,9 +675,7 @@ class CentroidDisplay extends React.Component<any, any> {
     }
 
     return (
-      <div>
-        <div style={divStyle}></div>
-      </div>
+      <div id="map" style={{height: "100%"}} ref={(map) => this.mapElem = map}></div>
     )
   }
 }
