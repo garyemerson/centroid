@@ -535,8 +535,8 @@ class CentroidDisplay extends React.Component<any, any> {
     }
   }
 
-  mapObj: any
-  mapElem: any
+  mapObj: any = null
+  mapElem: any = null
   buttonStyle: React.CSSProperties = {
     display: "block",
     fontSize: "10px",
@@ -608,39 +608,26 @@ class CentroidDisplay extends React.Component<any, any> {
   }
 
   componentDidMount() {
-    if (this.mapElem !== null) {
+    if (this.mapObj === null) {
       console.log("initializing map")
-      console.log("gmaps:")
-      console.log(gmaps)
-      // console.log("google is ", google)
-
-      let gm = gmaps({
+      this.mapObj = gmaps({
         div: '#map',
-        lat: -12.043333,
-        lng: -77.028333
+        lat: 0,
+        lng: -30,
+        zoom: 2,
+        width: "100%",
+        height: "100%",
       });
+    }
+  }
 
-      // this.mapObj = new google.maps.Map(this.mapElem, {
-      //   zoom: 12,
-      //   center: {lat: -28.643387, lng: 153.612224},
-      //   mapTypeControl: true,
-      //   mapTypeControlOptions: {
-      //       style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-      //       position: google.maps.ControlPosition.TOP_CENTER
-      //   },
-      //   zoomControl: true,
-      //   zoomControlOptions: {
-      //       position: google.maps.ControlPosition.LEFT_CENTER
-      //   },
-      //   scaleControl: true,
-      //   streetViewControl: true,
-      //   streetViewControlOptions: {
-      //       position: google.maps.ControlPosition.LEFT_TOP
-      //   },
-      //   fullscreenControl: true
-      // });
+  resetMap() {
+    if (this.mapObj !== null) {
+      this.mapObj.removeMarkers()
+      this.mapObj.setCenter(0, -30)
+      this.mapObj.setZoom(2)
     } else {
-      console.log("map is null")
+      console.log("mapObj null in resetMap")
     }
   }
 
@@ -650,22 +637,20 @@ class CentroidDisplay extends React.Component<any, any> {
     let divStyle = this.divStyle
     if (centroid === null) {
       centroidElem = null
+      this.resetMap()
     } else if (centroid.lat === null) {
       centroidElem = <p>not contained in one hemisphere</p>
     } else {
-      let imgDim = this.getImgDimensions(document.documentElement.clientWidth, document.documentElement.clientHeight)
-      console.log("imgDim is ", imgDim)
-      let imgUrl = "https://maps.googleapis.com/maps/api/staticmap?center=" + centroid.lat + "," +
-        centroid.lon + "&zoom=6&size=" + imgDim.width + "x" + imgDim.height +
-        "&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
-        "&markers=color:red%7C" + centroid.lat + "," + centroid.lon +
-        "&key=" + apiKey1
-      console.log("imgUrl is ", imgUrl)
-      let latLon = "" + centroid.lat + "," + centroid.lon
+      if (this.mapObj !== null) {
+        console.log("centering map to centroid")
+        this.mapObj.removeMarkers()
+        this.mapObj.setCenter(centroid.lat, centroid.lon)
+        this.mapObj.setZoom(6)
+        this.mapObj.addMarker({lat: centroid.lat, lng: centroid.lon})
+      } else {
+        console.log("mapObj is null")
+      }
 
-      centroidElem = <iframe style={{width: "99%", height: "65vh", border: "none"}} src={"https://www.google.com/maps/embed/v1/place?q=" + centroid.lat + "," + centroid.lon + "&zoom=6&key=" + apiKey2}></iframe>
-
-      divStyle = objectAssign({}, divStyle, {backgroundImage: "url(" + imgUrl + ")"})
       // centroidElem = (
       //   <div  style={this.divStyle}>
       //     <p>({latLon})</p>
@@ -675,7 +660,7 @@ class CentroidDisplay extends React.Component<any, any> {
     }
 
     return (
-      <div id="map" style={{height: "100%"}} ref={(map) => this.mapElem = map}></div>
+      <div id="map" style={{width: "100%", height: "100%"}} ref={(map) => this.mapElem = map}></div>
     )
   }
 }
