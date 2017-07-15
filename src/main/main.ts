@@ -86,8 +86,10 @@ function setupMenu() {
           label: "Toggle Search",
           accelerator: "CmdOrCtrl+L",
           click (item, focusedWindow) {
-            console.log("foobar menu clicked")
-            win.webContents.send('toggle-search', 'whoooooooh!')
+            // console.log("foobar menu clicked")
+            if (win !== null) {
+              win.webContents.send('toggle-search')
+            }
           }
         },
         {

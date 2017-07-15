@@ -30,8 +30,8 @@ class CitySelection extends React.Component<any, any> {
   }
 
   style: React.CSSProperties = {
-    paddingTop: "20px",      
-    height: "33.33vh",
+    paddingTop: "3vh",      
+    height: "35vh",
     background: "#efefef",
     overflowX: "scroll",
   }
@@ -240,8 +240,8 @@ class Search extends React.Component<any, any> {
       needsScroll: false,
     }
 
-    Electron.ipcRenderer.on('toggle-search', (event, message) => {
-      console.log(message)  // Prints 'whoooooooh!'
+    Electron.ipcRenderer.on('toggle-search', (event) => {
+      // console.log(message)  // Prints 'whoooooooh!'
       this.focusTextInput()
     })
   }
@@ -283,23 +283,29 @@ class Search extends React.Component<any, any> {
   }
 
   componentDidUpdate() {
-    if (this.state.needsScroll) {
-      if (resultList !== undefined && resultList !== null) {
-        console.log("restoring scrollTop to " + this.state.scrollTop)
-        resultList.scrollTop = this.state.scrollTop
-      } else {
-        console.log("bad resultList: " + resultList)
-      }
-      this.setState({
-        needsScroll: false
-      })
-    }
+    // if (this.state.needsScroll) {
+    //   if (resultList !== undefined && resultList !== null) {
+    //     console.log("restoring scrollTop to " + this.state.scrollTop)
+    //     resultList.scrollTop = this.state.scrollTop
+    //   } else {
+    //     console.log("bad resultList: " + resultList)
+    //   }
+    //   this.setState({
+    //     needsScroll: false
+    //   })
+    // }
   }
 
   handleBlur() {
     // console.log("blur")
     this.setState({
       focused: false,
+    })
+  }
+
+  updateScrollTop(x: number) {
+    this.setState({
+      scrollTop: x
     })
   }
 
@@ -350,39 +356,39 @@ class Search extends React.Component<any, any> {
       case 38: // Up
         event.preventDefault()
         if (this.state.selectedResult > 0) {
-          console.log("result offsetTop is " + results[this.state.selectedResult - 1].offsetTop)
-          console.log("resultList scrollTop is " + resultList.scrollTop)
+          // console.log("result offsetTop is " + results[this.state.selectedResult - 1].offsetTop)
+          // console.log("resultList scrollTop is " + resultList.scrollTop)
 
-          if (results[this.state.selectedResult - 1].offsetTop < resultList.scrollTop) {
-            console.log("resultList scrollTop before: " + resultList.scrollTop)
-            results[this.state.selectedResult - 1].scrollIntoView()
-            console.log("resultList scrollTop after: " + resultList.scrollTop)
-            console.log("resultList height is " + resultList.offsetHeight)
-          }
+          // if (results[this.state.selectedResult - 1].offsetTop < resultList.scrollTop) {
+          //   console.log("resultList scrollTop before: " + resultList.scrollTop)
+          //   results[this.state.selectedResult - 1].scrollIntoView()
+          //   console.log("resultList scrollTop after: " + resultList.scrollTop)
+          //   console.log("resultList height is " + resultList.offsetHeight)
+          // }
 
           this.setState({
             selectedResult: this.state.selectedResult - 1,
-            scrollTop: resultList.scrollTop,
+            // scrollTop: resultList.scrollTop,
           })
         }
         break
       case 40: // Down
         event.preventDefault()
         if (this.state.selectedResult < this.state.matches.length - 1) {
-          console.log("result offsetTop is " + results[this.state.selectedResult + 1].offsetTop)
-          console.log("resultList scrollTop is " + resultList.scrollTop)
-          let resultBottom = results[this.state.selectedResult + 1].offsetTop + results[this.state.selectedResult + 1].offsetHeight
-          let resultListBottom = resultList.scrollTop + resultList.offsetHeight
-          console.log("result bottom is " + resultBottom)
-          console.log("resultList bottom is " + resultListBottom)
-          if (resultBottom > resultListBottom) {
-            console.log("resultList scrollTop before: " + resultList.scrollTop)
-            results[this.state.selectedResult + 1].scrollIntoView(false)
-            console.log("resultList scrollTop after: " + resultList.scrollTop)
-          }
+          // console.log("result offsetTop is " + results[this.state.selectedResult + 1].offsetTop)
+          // console.log("resultList scrollTop is " + resultList.scrollTop)
+          // let resultBottom = results[this.state.selectedResult + 1].offsetTop + results[this.state.selectedResult + 1].offsetHeight
+          // let resultListBottom = resultList.scrollTop + resultList.offsetHeight
+          // console.log("result bottom is " + resultBottom)
+          // console.log("resultList bottom is " + resultListBottom)
+          // if (resultBottom > resultListBottom) {
+          //   console.log("resultList scrollTop before: " + resultList.scrollTop)
+          //   results[this.state.selectedResult + 1].scrollIntoView(false)
+          //   console.log("resultList scrollTop after: " + resultList.scrollTop)
+          // }
           this.setState({
             selectedResult: this.state.selectedResult + 1,
-            scrollTop: resultList.scrollTop,
+            // scrollTop: resultList.scrollTop,
           })
         }
         break
@@ -400,7 +406,8 @@ class Search extends React.Component<any, any> {
       if (this.state.matches.length > 0) {
         inputStyle = objectAssign({}, this.inputStyle, {borderRadius: "3px 3px 0 0"})
         results = <Results dispatch={this.props.dispatch} ref={(results) => this.resultList = results} matches={this.state.matches}
-          matchIndices={this.state.matchIndices} selectedIndex={this.state.selectedResult} scrollTop={this.state.scrollTop}/>
+          matchIndices={this.state.matchIndices} selectedIndex={this.state.selectedResult} scrollTop={this.state.scrollTop}
+          UpdateScrollTop={this.updateScrollTop.bind(this)}/>
       }
     }
 
@@ -426,8 +433,14 @@ class Search extends React.Component<any, any> {
 class Results extends React.Component<any, any> {
   constructor(props: any) {
     super(props)
+
+    this.state = {
+      scrollTop: 0,
+    }
   }
 
+  ul: any
+  lis = {}
   style = {
     borderRadius: "0 0 3px 3px",
     border: "1px solid #ddd",
@@ -483,15 +496,49 @@ class Results extends React.Component<any, any> {
 
   getAddCityFn(city: string) {
     return function(e: any) {
-      e.preventDefault()
+      // e.preventDefault()
       this.props.dispatch({type: "ADD_CITY", name: city})
     }.bind(this)
   }
 
+  componentDidUpdate() {
+    let selectedTop = this.lis[this.props.selectedIndex].offsetTop
+    let listTop = this.ul.scrollTop
+    let selectedBottom = selectedTop + this.lis[this.props.selectedIndex].offsetHeight
+    let listBottom = listTop + this.ul.offsetHeight
+    // console.log("selectedTop: " + selectedTop + "; listTop: " + listTop)
+    // console.log("selectedBottom: " + selectedBottom + "; listBottom: " + listBottom)
+
+    if (selectedBottom > listBottom) {
+      // console.log("this.ul.scrollTop before: " + this.ul.scrollTop)
+      this.lis[this.props.selectedIndex].scrollIntoView(false)
+      // console.log("this.ul.scrollTop after: " + this.ul.scrollTop)
+      this.props.UpdateScrollTop(this.ul.scrollTop)
+      // this.setState({
+      //   scrollTop: this.ul.scrollTop
+      // })
+    } else if (selectedTop < listTop) {
+      // console.log("this.ul.scrollTop before: " + this.ul.scrollTop)
+      this.lis[this.props.selectedIndex].scrollIntoView(true)
+      // console.log("this.ul.scrollTop after: " + this.ul.scrollTop)
+      this.props.UpdateScrollTop(this.ul.scrollTop)
+      // this.setState({
+      //   scrollTop: this.ul.scrollTop
+      // })
+    }
+  }
+
+  componentDidMount() {
+    console.log("setting scrollTop to " + this.state.scrollTop)
+    this.ul.scrollTop = this.props.scrollTop
+  }
+
   render() {
+    console.log("render: scrollTop is " + this.state.scrollTop)
+
     let start = performance.now()
     let liElems: JSX.Element[] = []
-    console.log("there are " + this.props.matches.length + " matches")
+    // console.log("there are " + this.props.matches.length + " matches")
     for (let i = 0; i < this.props.matches.length; i++) {
       let liContent = this.getHighlightedSpans(i)
       let hoverStyle = <style>{"#dropdownEntry" + i + ":hover {background-color: #eaeaea}"}</style>
@@ -499,11 +546,11 @@ class Results extends React.Component<any, any> {
       let li: JSX.Element
       if (i === this.props.selectedIndex) {
         selectedStyle = <style>{"#dropdownEntry" + i + "{background-color: #eaeaea}"}</style>
-        li = <li ref={(result) => results[i] = result} key={i} id={"dropdownEntry" + i}
+        li = <li ref={(result) => {results[i] = result; this.lis[i] = result}} key={i} id={"dropdownEntry" + i}
           onMouseDown={this.getAddCityFn(this.props.matches[i])} style={this.liStyle}>
           {selectedStyle}{hoverStyle}{liContent}</li>
       } else {
-        li = <li ref={(result) => results[i] = result} key={i} id={"dropdownEntry" + i}
+        li = <li ref={(result) => {results[i] = result; this.lis[i] = result}} key={i} id={"dropdownEntry" + i}
           onMouseDown={this.getAddCityFn(this.props.matches[i])} style={this.liStyle}>{hoverStyle}{liContent}</li>
       }
 
@@ -514,7 +561,7 @@ class Results extends React.Component<any, any> {
     return (
       <div style={this.style}>
         <style>{"#cityList::-webkit-scrollbar {width: 0px;}"}</style>
-        <ul ref={(ul) => resultList = ul} id="cityList" style={this.ulStyle}>
+        <ul ref={(ul) => {resultList = ul; this.ul = ul}} id="cityList" style={this.ulStyle}>
           {liElems}
         </ul>
       </div>
@@ -616,7 +663,7 @@ class CentroidDisplay extends React.Component<any, any> {
         lng: -30,
         zoom: 2,
         width: "100%",
-        height: "100%",
+        height: "62vh",
       });
     }
   }
@@ -660,7 +707,7 @@ class CentroidDisplay extends React.Component<any, any> {
     }
 
     return (
-      <div id="map" style={{width: "100%", height: "100%"}} ref={(map) => this.mapElem = map}></div>
+      <div id="map" style={{width: "100%", /*height: "100%"*/}} ref={(map) => this.mapElem = map}></div>
     )
   }
 }
