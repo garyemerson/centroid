@@ -35,6 +35,7 @@
     "redux": "^3.6.0",
     "fuse.js": "^3.0.4",
     "gmaps": "^0.4.24",
+    "xmlhttprequest": "^1.5.3",
     "redux-logger": "^2.5.0"
   },
   "build": {

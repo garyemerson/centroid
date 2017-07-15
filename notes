@@ -1,7 +1,5 @@
 TODO
 ----
-* Dropdown arrow key still possible to move selection out of view when manually scroll out of view then use arrow key
-* Shadows on previews and centroid img
 * Move React components into separate files
 * Fix: adding city when enough exist to create scroll there's no visual indication it was added bc it's added to the end to the right where the element is not in view
 * Prevent dropdown from disappearing when OS app loses focus

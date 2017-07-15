@@ -20,23 +20,6 @@ fn init(_call: Call) -> JsResult<JsNull> {
     Ok(JsNull::new())
 }
 
-fn get_max(call: Call) -> JsResult<JsNumber> {
-    let nums = call.arguments.require(call.scope, 0)?
-        .check::<JsArray>()?
-        .to_vec(call.scope)?
-        .into_iter()
-        .map(|x| -> f64 { x.check::<JsNumber>().unwrap().value() })
-        .collect::<Vec<f64>>();
-
-    let mut max = nums[0];
-    for x in nums {
-        if x > max {
-            max = x;
-        }
-    }
-    Ok(JsNumber::new(call.scope, max))
-}
-
 
 // 
 // Latitude+longitude to 3d cartesian coords
@@ -91,17 +74,17 @@ fn project(p: &Point) -> Point {
 fn compute_centroid_xyz(points: &Vec<Point>) -> Result<Point, String> {
     let vertices = one_hemisphere_xyz(points);
     if vertices.len() == 0 {
-        println!("Points not contained in one hemishpere.");
+        // println!("Points not contained in one hemishpere.");
         return Err("Points not contained in one hemishpere.".to_string());
     }
 
     let avg_x = points.iter().fold(0.0, |acc, ref p| acc + p.x) / (points.len() as f64);
     let avg_y = points.iter().fold(0.0, |acc, ref p| acc + p.y) / (points.len() as f64);
     let avg_z = points.iter().fold(0.0, |acc, ref p| acc + p.z) / (points.len() as f64);
-    println!("avg_x is {}; avg_y is {}; avg_z is {}", avg_x, avg_y, avg_z);
+    // println!("avg_x is {}; avg_y is {}; avg_z is {}", avg_x, avg_y, avg_z);
     let centroid = project(&Point { x: avg_x, y: avg_y, z: avg_z});
 
-    println!("projected centroid is {:?} with magnitude {}", centroid, mag(&centroid));
+    // println!("projected centroid is {:?} with magnitude {}", centroid, mag(&centroid));
     Ok(centroid)
 }
 
@@ -184,10 +167,10 @@ fn compute_centroid_lat_lon(call: Call) -> JsResult<JsArray> {
         .collect::<Vec<Point>>();
     xyz_points = dedup_points(xyz_points);
 
-    println!("xyz points are:");
-    for p in &xyz_points {
-        println!("{:?} {:?} ({})", to_lat_lon(p), p, mag(p));
-    }
+    // println!("xyz points are:");
+    // for p in &xyz_points {
+    //     println!("{:?} {:?} ({})", to_lat_lon(p), p, mag(p));
+    // }
 
     let centroid: Result<Point, String>;
     if xyz_points.len() == 1 {
@@ -255,7 +238,6 @@ fn to_xyz(lat: f64, lon: f64) -> Point {
 
 register_module!(m, {
     m.export("init", init)?;
-    m.export("getMax", get_max)?;
     m.export("computeCentroid", compute_centroid_lat_lon)?;
     Ok(())
 });

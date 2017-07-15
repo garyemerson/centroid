@@ -10,7 +10,7 @@ import https = require('https')
 import { Provider, connect } from 'react-redux'
 import { createStore, applyMiddleware, compose, Action } from 'redux'
 import logger = require("redux-logger")
-import gmaps = require('./gmaps')
+import gmaps = require('gmaps')
 
 native.init()
 
@@ -19,10 +19,8 @@ let results = {}
 
 // Get access to dialog boxes in our main UI process.
 const remote = Electron.remote
-const apiKeyFile1 = "/Users/Garrett/Dropbox/Files/workspaces/centroid/api_key1"
-const apiKeyFile2 = "/Users/Garrett/Dropbox/Files/workspaces/centroid/api_key2"
-let apiKey1: string | null = null
-let apiKey2: string | null = null
+const apiKeyFile = "/Users/Garrett/Dropbox/Files/workspaces/centroid/api_key"
+let apiKey: string | null = null
 
 class CitySelection extends React.Component<any, any> {
   constructor() {
@@ -66,19 +64,19 @@ class Preview extends React.Component<any, any> {
     super(props)
     let cityEscaped = this.props.city.replace(/, /g , ",").replace(/ /g, "+")
 
-    if (apiKey1 === null) {
-      apiKey1 = fs.readFileSync(apiKeyFile1).toString().trim()
+    if (apiKey === null) {
+      apiKey = fs.readFileSync(apiKeyFile).toString().trim()
     }
     this.state = {
       city: this.props.city,
       imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ cityEscaped + 
         "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" + "&scale=2" +
         "&markers=color:red%7C" + cityEscaped + 
-        "&key=" + apiKey1,
+        "&key=" + apiKey,
       lat: this.props.lat,
       lon: this.props.lon,
     }
-    this.getLatLon(cityEscaped, apiKey1)
+    this.getLatLon(cityEscaped, apiKey)
   }
 
   style: React.CSSProperties = {
@@ -123,12 +121,12 @@ class Preview extends React.Component<any, any> {
     display: "table",
   }
 
-  getLatLon(city: string, apiKey1: string) {
+  getLatLon(city: string, apiKey: string) {
     city = city.trim()
     console.log("city is '" + city + "'")
     console.log("city encoded is '" + encodeURIComponent(city) + "'")
-    console.log("apiKey1 is '" + apiKey1 + "'")
-    let requestPath = "/maps/api/geocode/json?address=" + city + "&key=" + apiKey1
+    console.log("apiKey is '" + apiKey + "'")
+    let requestPath = "/maps/api/geocode/json?address=" + city + "&key=" + apiKey
 
     const options = {
       hostname: 'maps.googleapis.com',
@@ -179,7 +177,7 @@ class Preview extends React.Component<any, any> {
         city: nextProps.city,
         imgUrl: "https://maps.googleapis.com/maps/api/staticmap?center="+ cityEscaped + 
           "&zoom=5&size=500x300&path=weight:3%7Ccolor:blue%7Cenc:{coaHnetiVjM??_SkM??~R" +
-          "&scale=2" + "&markers=color:red%7C" + cityEscaped + "&key=" + apiKey1,
+          "&scale=2" + "&markers=color:red%7C" + cityEscaped + "&key=" + apiKey,
       })
     }
     if (nextProps.lat !== this.props.lat || nextProps.lon !== this.props.lon) {
@@ -573,10 +571,6 @@ class CentroidDisplay extends React.Component<any, any> {
   constructor() {
     super()
 
-    if (apiKey2 === null) {
-      apiKey2 = fs.readFileSync(apiKeyFile2).toString().trim()
-    }
-
     this.state = {
       phantomState: null
     }
@@ -654,9 +648,14 @@ class CentroidDisplay extends React.Component<any, any> {
     }
   }
 
+  gmapCallback() {
+    console.log("in gmapCallback")
+  }
+
   componentDidMount() {
     if (this.mapObj === null) {
       console.log("initializing map")
+      console.log("gmaps is", gmaps)
       this.mapObj = gmaps({
         div: '#map',
         lat: 0,
