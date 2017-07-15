@@ -1,6 +1,6 @@
 TODO
 ----
-* Fix single city centroid issue
+* Arrow selection bug: when arrow up and move scroll, the whole app shifts up. Vice versa for down arrow
 * Dropdown arrow key still possible to move selection out of view when manually scroll out of view then use arrow key
 * Shadows on previews and centroid img
 * Move React components into separate files
