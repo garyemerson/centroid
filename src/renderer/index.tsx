@@ -20,7 +20,7 @@ let results = {}
 // Get access to dialog boxes in our main UI process.
 const remote = Electron.remote
 const apiKeyFile = "/Users/Garrett/Dropbox/Files/workspaces/centroid/api_key"
-let apiKey: string | null = null
+let apiKey: string = ""
 
 class CitySelection extends React.Component<any, any> {
   constructor() {
@@ -64,7 +64,7 @@ class Preview extends React.Component<any, any> {
     super(props)
     let cityEscaped = this.props.city.replace(/, /g , ",").replace(/ /g, "+")
 
-    if (apiKey === null) {
+    if (apiKey === "") {
       apiKey = fs.readFileSync(apiKeyFile).toString().trim()
     }
     this.state = {
