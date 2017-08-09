@@ -5,6 +5,7 @@ dependencies = [
  "env_logger 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "neon 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "neon-build 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

@@ -19,7 +19,7 @@ let results = {}
 
 // Get access to dialog boxes in our main UI process.
 const remote = Electron.remote
-const apiKeyFile = "/Users/Garrett/Dropbox/Files/workspaces/centroid/api_key"
+const apiKeyFile = "/Users/Garrett/workspaces/centroid/api_key"
 let apiKey: string = ""
 
 class CitySelection extends React.Component<any, any> {
@@ -224,7 +224,7 @@ class Search extends React.Component<any, any> {
     }
 
     this.focusTextInput = this.focusTextInput.bind(this)
-    let allCities = fs.readFileSync("/Users/Garrett/Dropbox/Files/workspaces/centroid/cities", "utf8").split("\n")
+    let allCities = fs.readFileSync("/Users/Garrett/workspaces/centroid/cities", "utf8").split("\n")
     this.state = {
       inputText: "",
       matches: [] as string[],

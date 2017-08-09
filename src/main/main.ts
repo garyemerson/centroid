@@ -1,10 +1,7 @@
 import { app, BrowserWindow, globalShortcut, ipcMain } from 'electron';
 import url = require('url');
 import path = require('path');
-import native = require('../../native');
 const {Menu, MenuItem} = require('electron')
-
-native.init()
 
 // Global window object so it doesn't go out of scope and get GCed.
 let win: Electron.BrowserWindow | null

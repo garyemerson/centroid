@@ -8,13 +8,16 @@
     "install": "neon build && webpack",
     "watch": "webpack --watch",
     "start": "electron .",
-    "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false build"
+    "dist": "build",
+    "build": "electron-build-env neon build",
+    "postinstall": "npm run build"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "7zip-bin": "^2.0.4",
-    "electron": "^1.4.12",
+    "electron": "^1.6.2",
+    "electron-build-env": "^0.2",
     "electron-builder": "^10.8.1",
     "electron-react-devtools": "^0.4.0",
     "electron-rebuild": "^1.5.11",
