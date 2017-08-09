@@ -85,7 +85,7 @@ class Preview extends React.Component<any, any> {
     margin: "0 10px 10px 10px",
     textAlign: "center",
     fontFamily: "monospace",
-    fontSize: "1.5vh",
+    fontSize: "12px",
   }
   imgStyle: React.CSSProperties = {
     height: "15vh",
